@@ -61,7 +61,7 @@ class AppConfig(BaseModel):
     def local_config(cls):
         """Create a local config for testing oe local deployment."""
         config = cls()
-        config.verbose = True
+        config.verbose = False
         config.default_vector_store = {
             "class_name": "chroma",
             "collection_name": "default",

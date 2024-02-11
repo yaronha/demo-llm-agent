@@ -3,9 +3,9 @@ from typing import List, Optional, Tuple
 import sqlalchemy
 
 from src.config import config, logger
+from src.data.sqldb import DocumentCollections
 from src.doc_loader import get_data_loader, get_loader_obj
 from src.schema import ApiResponse, IngestItem
-from src.data.sqldb import DocumentCollections
 
 
 def list_collections(
@@ -49,11 +49,24 @@ def delete_collection(session: sqlalchemy.orm.Session, name: str):
 
 
 def create_collection(
-    session: sqlalchemy.orm.Session, name: str, owner_name: str = None, **kwargs
+    session: sqlalchemy.orm.Session,
+    name: str,
+    description: str,
+    owner_name: str = None,
+    **kwargs,
 ):
     """This is the create collection command"""
     logger.debug(f"Creating collection: name={name}, {kwargs}")
-    DocumentCollections.create(session, name, owner_name, **kwargs)
+    DocumentCollections.create(session, name, description, owner_name, **kwargs)
+    return ApiResponse(success=True)
+
+
+def update_collection(
+    session: sqlalchemy.orm.Session, name: str, description: str, **kwargs
+):
+    """This is the create collection command"""
+    logger.debug(f"Creating collection: name={name}, {kwargs}")
+    DocumentCollections.update(session, name, description, **kwargs)
     return ApiResponse(success=True)
 
 

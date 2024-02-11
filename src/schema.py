@@ -41,7 +41,9 @@ class Conversation(BaseModel):
 class PipelineEvent:
     """A pipeline event."""
 
-    def __init__(self, query=None, username=None, session_id=None, db_session=None, **kwargs):
+    def __init__(
+        self, query=None, username=None, session_id=None, db_session=None, **kwargs
+    ):
         self.username = username
         self.session_id = session_id
         self.original_query = query
@@ -82,13 +84,13 @@ class ApiResponse(BaseModel):
 
     def with_raise(self, format=None) -> "ApiResponse":
         if not self.success:
-            format = format or f"API call failed: %s"
+            format = format or "API call failed: %s"
             raise ValueError(format % self.error)
         return self
 
     def with_raise_http(self, format=None) -> "ApiResponse":
         if not self.success:
-            format = format or f"API call failed: %s"
+            format = format or "API call failed: %s"
             raise HTTPException(status_code=400, detail=format % self.error)
         return self
 

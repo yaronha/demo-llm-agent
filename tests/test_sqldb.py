@@ -1,3 +1,4 @@
+from src.api import users
 from src.data.sqldb import (
     ChatSessions,
     DocumentCollections,
@@ -6,7 +7,6 @@ from src.data.sqldb import (
     drop_tables,
     get_db_session,
 )
-from src.api import users
 
 
 def test_sql_db():

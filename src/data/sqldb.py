@@ -322,7 +322,6 @@ class ChatSessions:
         return query.all()
 
 
-# Create a class definition for document collections table, with name as a unique key, creation time, last_update, owner, and metadata (key/value dict)
 class DocumentCollection(Base):
     __tablename__ = "document_collections"
     _details_fields = ["meta"]

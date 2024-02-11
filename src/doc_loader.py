@@ -13,8 +13,9 @@ from langchain.document_loaders import (
 )
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-from .config import AppConfig, get_vector_db
 from src.data.sqldb import DocumentCollections, get_db_session
+
+from .config import AppConfig, get_vector_db, logger
 
 # class Source(BaseModel):
 #     title: Optional[str] = Field(None)
@@ -100,6 +101,9 @@ class DataLoader:
             chunk.metadata["doc_uid"] = doc_uid
             if version:
                 chunk.metadata["version"] = version
+            logger.debug(
+                f"Loading doc chunk:\n{chunk.page_content}\nMetadata: {chunk.metadata}"
+            )
         self.vector_store.add_documents(chunks)
 
 

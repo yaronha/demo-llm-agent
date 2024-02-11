@@ -1,22 +1,19 @@
 import os
 import uuid
+from typing import Literal
 
-import pandas as pd
-from dash import html
 import dash_cytoscape as cyto
+import pandas as pd
+import vizro.models as vm
+from dash import html
+from vizro import Vizro
+from vizro.models._components.form._user_input import UserInput
+from vizro.models.types import capture
 from vizro.tables import dash_data_table
 
-from src.viz.actions import update, submit
-from src.viz.components import ChatbotWindow, CustomUserInput
-from vizro.models._components.form._user_input import UserInput
-
-from vizro import Vizro
-import vizro.models as vm
-from vizro.models.types import capture
-
-from typing import Literal, List
 from src.client import Client
-
+from src.viz.actions import submit, update
+from src.viz.components import ChatbotWindow, CustomUserInput
 
 ##
 # Set this to True while developing. This will enable hot reloading so that
@@ -31,6 +28,7 @@ def get_collections():
     """get the available indices from the back end"""
     return client.list_collections(names_only=True)
 
+
 @capture("action")
 def submit_ingest(n_clicks: int, data_path: str, collection: str):
     """What happens when you click the Submit button."""
@@ -42,11 +40,13 @@ def submit_ingest(n_clicks: int, data_path: str, collection: str):
     print(data_path, collection)
 
 
-## Used on chatbot screen
+# Used on chatbot screen
 def get_llm_response(user_input: str) -> str:
     """What happens when you send a message to the chatbot."""
     # requests.post(...)
-    bot_message, sources, state = client.query(user_input, collection="default", session_id=session_id)
+    bot_message, sources, state = client.query(
+        user_input, collection="default", session_id=session_id
+    )
     if sources:
         bot_message += "\n" + sources
     return bot_message
@@ -57,6 +57,7 @@ def new_collection(n_clicks: int, name, description, category="vector"):
     if not n_clicks:
         return
     client.create_collection(name, description=description, db_category=category)
+
 
 def get_flowchart_elements():
     """Nodes and edges for the flowchart."""
@@ -82,7 +83,11 @@ class Flowchart(vm.VizroBaseModel):
         return html.Div(
             [
                 cyto.Cytoscape(
-                    layout={"name": "breadthfirst", "directed": True, "spacingFactor": 1},
+                    layout={
+                        "name": "breadthfirst",
+                        "directed": True,
+                        "spacingFactor": 1,
+                    },
                     style={"width": "100%", "height": "400px"},
                     stylesheet=[
                         {
@@ -114,7 +119,9 @@ class Flowchart(vm.VizroBaseModel):
                             },
                         },
                     ],
-                    elements=[{"data": element} for element in get_flowchart_elements()],
+                    elements=[
+                        {"data": element} for element in get_flowchart_elements()
+                    ],
                 )
             ]
         )
@@ -166,15 +173,28 @@ pages.append(
     vm.Page(
         title="Ingest data",
         components=[
-            UserInput(id="data_path", title="Data path", placeholder="http://www.example.com/data"),
-            vm.Dropdown(id="collection", title="Select collection", options=get_collections(), multi=False),
+            UserInput(
+                id="data_path",
+                title="Data path",
+                placeholder="http://www.example.com/data",
+            ),
+            vm.Dropdown(
+                id="collection",
+                title="Select collection",
+                options=get_collections(),
+                multi=False,
+            ),
             vm.Button(
                 id="submit_ingest",
                 text="Submit",
                 actions=[
                     vm.Action(
                         function=submit_ingest(),
-                        inputs=["submit_ingest.n_clicks", "data_path.value", "collection.value"],
+                        inputs=[
+                            "submit_ingest.n_clicks",
+                            "data_path.value",
+                            "collection.value",
+                        ],
                     )
                 ],
             ),
@@ -211,13 +231,19 @@ df = pd.DataFrame(data)
 pages.append(
     vm.Page(
         title="Data",
-        #layout=GridLayout(grid=[[0, 1, 2], [3, 3, 3], [3, 3, 3]], row_gap="8px", id="data-layout"),
+        # layout=GridLayout(grid=[[0, 1, 2], [3, 3, 3], [3, 3, 3]], row_gap="8px", id="data-layout"),
         components=[
             vm.Container(
                 title="Create New Collection",
-                layout=GridLayout(grid=[[0, 1, 2], [3, 3, 3]], row_gap="8px", id="data-layout"),
+                layout=GridLayout(
+                    grid=[[0, 1, 2], [3, 3, 3]], row_gap="8px", id="data-layout"
+                ),
                 components=[
-                    UserInput(id="collection_name", title="Collection name", placeholder="default"),
+                    UserInput(
+                        id="collection_name",
+                        title="Collection name",
+                        placeholder="default",
+                    ),
                     UserInput(id="collection_desc", title="Description"),
                     UserInput(id="collection_type", title="Type", placeholder="vector"),
                     vm.Button(
@@ -226,12 +252,18 @@ pages.append(
                         actions=[
                             vm.Action(
                                 function=new_collection(),
-                                inputs=["submit_ingest.n_clicks", "collection_name.value", "collection_desc.value", "collection_type.value"],
+                                inputs=[
+                                    "submit_ingest.n_clicks",
+                                    "collection_name.value",
+                                    "collection_desc.value",
+                                    "collection_type.value",
+                                ],
                             )
                         ],
-                    )
-                ]),
-            vm.Table(title="Data Collections", figure=dash_data_table(data_frame=df))
+                    ),
+                ],
+            ),
+            vm.Table(title="Data Collections", figure=dash_data_table(data_frame=df)),
         ],
     )
 )

@@ -41,14 +41,26 @@ OPENAI_API_BASE=https://api.openai.com
 Substitute the `OPENAI_API_KEY` and `OPENAI_API_BASE` with your own key and base address.
 
 
-# API Server and UI
+# Getting it to work
 
-To start the API server:
+Make sure there `.env` file is set before running the following commands, and if needed make modifications to the config
+
+## Initialize the database:
+
+```shell
+python -m src.main initdb
+```
+
+> should be done only once, or when we want to erase the DB and start fresh 
+
+## To start the API server:
+
 ```shell
 uvicorn src.api.api:app
 ```
 
-To start Vizro UI:
+## To start Vizro UI:
+
 ```shell
 python -m src.viz.app
 ```

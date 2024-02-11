@@ -5,9 +5,9 @@ import sqlalchemy
 from pydantic import BaseModel
 
 from src.config import config, logger
+from src.data.sqldb import ChatSessions
 from src.pipeline import initialize_pipeline
 from src.schema import ApiResponse, PipelineEvent
-from src.data.sqldb import ChatSessions
 from src.utils import sources_to_md
 
 
@@ -74,7 +74,7 @@ def get_session(session: sqlalchemy.orm.Session, session_id: str):
 
 def transcribe_file(file_handler):
     """transcribe audio file using openai API"""
-    logger.debug(f"Transcribing file")
+    logger.debug("Transcribing file")
     text = openai.Audio.transcribe("whisper-1", file_handler)
     print(text)
     return ApiResponse(success=True, data=text)

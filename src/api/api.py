@@ -6,7 +6,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from src.api import chat, collections, users
-from src.chains.retrieval import get_retriever_from_config
 from src.config import config, get_vector_db
 from src.schema import IngestItem
 
@@ -153,7 +152,7 @@ async def transcribe_file(file: UploadFile = File(...)):
 @app.get("/tst")
 async def tst():
     vector = get_vector_db(config)
-    results = vector.similarity_search("Can you please provide me with information about the mobile plans?")
+    results = vector.similarity_search(
+        "Can you please provide me with information about the mobile plans?"
+    )
     print(results)
-
-

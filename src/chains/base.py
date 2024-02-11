@@ -1,16 +1,13 @@
 import asyncio
-import importlib
-import inspect
-from collections import OrderedDict
 
-import storey
 import mlrun
+import storey
 from mlrun import serving
 from mlrun.utils import get_caller_globals
 
+from src.config import config as default_config
 from src.data.sessions import get_session_store
-from src.config import config as default_config, logger
-from src.schema import PipelineEvent, TerminateResponse
+from src.schema import PipelineEvent
 
 
 class ChainRunner(storey.Flow):
@@ -60,18 +57,14 @@ class SessionLoader(storey.Flow):
             if isinstance(element, dict):
                 element = PipelineEvent(**element)
 
-            self.context.session_store.read_state(
-                element
-            )
+            self.context.session_store.read_state(element)
             mapped_event = self._user_fn_output_to_event(event, element)
             await self._do_downstream(mapped_event)
 
 
 class HistorySaver(ChainRunner):
 
-    def __init__(
-        self, answer_key: str = None, question_key: str = None, **kwargs
-    ):
+    def __init__(self, answer_key: str = None, question_key: str = None, **kwargs):
         super().__init__(**kwargs)
         self.answer_key = answer_key or "answer"
         self.question_key = question_key
@@ -125,8 +118,12 @@ class AppPipeline:
     def get_server(self):
         if self._server is None:
             namespace = get_caller_globals()
-            server = serving.create_graph_server(graph=self.graph, parameters={}, verbose=self.verbose,
-                                         graph_initializer=self.lc_initializer)
+            server = serving.create_graph_server(
+                graph=self.graph,
+                parameters={},
+                verbose=self.verbose,
+                graph_initializer=self.lc_initializer,
+            )
             server.init_states(context=None, namespace=namespace)
             server.init_object(namespace)
             return server
@@ -140,7 +137,9 @@ class AppPipeline:
             context.session_store = self.session_store
 
     def post_init(self):
-        self.graph.to(SessionLoader()).to(name="s1", class_name="RefineQuery").to(name="s2", class_name="MultiRetriever").to(HistorySaver()).respond()
+        self.graph.to(SessionLoader()).to(name="s1", class_name="RefineQuery").to(
+            name="s2", class_name="MultiRetriever"
+        ).to(HistorySaver()).respond()
         print(self.graph.to_yaml())
 
     def run(self, event: PipelineEvent, db_session=None):

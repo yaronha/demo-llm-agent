@@ -3,7 +3,6 @@ from src.chains.refine import RefineQuery
 from src.chains.retrieval import MultiRetriever
 from src.config import AppConfig, logger
 
-
 pipe_config = [
     SessionLoader(),
     RefineQuery(),

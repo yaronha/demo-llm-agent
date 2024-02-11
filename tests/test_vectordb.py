@@ -27,7 +27,9 @@ def test_load():
 
 def test_vector_db():
     vector_store = get_vector_db(config)
-    results = vector_store.similarity_search("Can you please provide me with information about the mobile plans?")
+    results = vector_store.similarity_search(
+        "Can you please provide me with information about the mobile plans?"
+    )
     print("results:", results)
 
 

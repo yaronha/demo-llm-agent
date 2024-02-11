@@ -1,13 +1,12 @@
 """User input component."""
-from vizro.models._action._actions_chain import Trigger
-from vizro.models._components.form._user_input import UserInput
 
 from typing import Literal
 
 import dash_bootstrap_components as dbc
 from dash import dcc, html
-
 from vizro.models import VizroBaseModel
+from vizro.models._action._actions_chain import Trigger
+from vizro.models._components.form._user_input import UserInput
 from vizro.models._models_utils import _log_call
 
 try:

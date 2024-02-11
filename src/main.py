@@ -2,15 +2,10 @@
 # include two click commands: 1. data ingestion (using the data loader), 2. query (using the agent)
 
 import click
-from tabulate import tabulate
 import yaml
+from tabulate import tabulate
 
 from src.api import chat, collections, users
-
-from .config import config
-from .doc_loader import get_data_loader, get_loader_obj
-from .pipeline import initialize_pipeline
-from .schema import PipelineEvent
 from src.data.sqldb import (
     DocumentCollections,
     Users,
@@ -18,6 +13,11 @@ from src.data.sqldb import (
     drop_tables,
     get_db_session,
 )
+
+from .config import config
+from .doc_loader import get_data_loader, get_loader_obj
+from .pipeline import initialize_pipeline
+from .schema import PipelineEvent
 from .utils import sources_to_text
 
 
@@ -61,15 +61,28 @@ def print_config():
 )
 @click.option("-v", "--version", type=str, help="document version")
 @click.option("-c", "--collection", type=str, help="Vector DB collection name")
-def ingest(path, loader, metadata, version, collection):
+@click.option(
+    "-f", "--from-file", is_flag=True, help="Take the document paths from the file"
+)
+def ingest(path, loader, metadata, version, collection, from_file):
     """Ingest documents into the vector database"""
     create_tables()
     data_loader = get_data_loader(config, collection_name=collection)
-    loader_obj = get_loader_obj(path, loader_type=loader)
-    data_loader.load(loader_obj, metadata=metadata, version=version)
+    if from_file:
+        with open(path, "r") as fp:
+            lines = fp.readlines()
+        for line in lines:
+            path = line.strip()
+            click.echo(f"Using loader: {loader}")
+            if path and not path.startswith("#"):
+                click.echo(f"Loading from path: {path}")
+                loader_obj = get_loader_obj(path, loader_type=loader)
+                data_loader.load(loader_obj, metadata=metadata, version=version)
 
-    # Call your data loader here
-    click.echo(f"Running Data Ingestion from: {path} with loader: {loader}")
+    else:
+        loader_obj = get_loader_obj(path, loader_type=loader)
+        data_loader.load(loader_obj, metadata=metadata, version=version)
+        click.echo(f"Running Data Ingestion from: {path} with loader: {loader}")
 
 
 @click.command()
@@ -111,8 +124,8 @@ def list():
 
 
 @click.group()
-def create():
-    """Create a new object in the database"""
+def update():
+    """Create or update an object in the database"""
     pass
 
 
@@ -121,7 +134,7 @@ def create():
 @click.option("-e", "--email", type=str, help="email filter")
 def list_users(user, email):
     """List users"""
-    click.echo(f"Running List Users")
+    click.echo("Running List Users")
 
     session = get_db_session()
     data = users.list_users(session, email, user, short=True).with_raise()
@@ -138,7 +151,7 @@ def list_users(user, email):
 )
 def list_collections(owner, metadata):
     """List document collections"""
-    click.echo(f"Running List Collections")
+    click.echo("Running List Collections")
 
     session = get_db_session()
     data = collections.list_collections(
@@ -151,24 +164,31 @@ def list_collections(owner, metadata):
 
 # add a command for creating or updating a collection, using the collections.create_collection function, and accept all the same arguments as click options
 @click.command("collection")
-@click.option("-n", "--name", type=str, help="collection name")
+@click.argument("name", type=str)
 @click.option("-o", "--owner", type=str, help="owner name")
 @click.option("-d", "--description", type=str, help="collection description")
 @click.option("-c", "--category", type=str, help="collection category")
-def create_collection(name, owner, description, category):
-    """Create a document collection"""
-    click.echo(f"Running Create Collection")
+@click.option("-m", "--metadata", multiple=True, default=[], help="metadata filter")
+def update_collection(name, owner, description, category, metadata):
+    """Create or update a document collection"""
+    click.echo("Running Create or Update Collection")
+    metadata = fill_params(metadata)
 
     session = get_db_session()
     # check if the collection exists, if it does, update it, otherwise create it
     collection_exists = collections.get_collection(session, name).success
     if collection_exists:
         collections.update_collection(
-            session, name, owner, description, category
+            session, name, description, db_category=category, meta=metadata
         ).with_raise()
     else:
         collections.create_collection(
-            session, name, owner, description, category
+            session,
+            name,
+            description,
+            owner_name=owner,
+            db_category=category,
+            meta=metadata,
         ).with_raise()
 
 
@@ -179,7 +199,7 @@ def create_collection(name, owner, description, category):
 @click.option("-c", "--created", type=str, help="created after date")
 def list_sessions(user, last, created):
     """List chat sessions"""
-    click.echo(f"Running List Sessions")
+    click.echo("Running List Sessions")
 
     session = get_db_session()
     data = chat.list_sessions(session, user, created, last, short=True).with_raise()
@@ -192,6 +212,21 @@ def format_table_results(table_results):
     return tabulate(table_results, headers="keys", tablefmt="fancy_grid")
 
 
+def fill_params(params, params_dict=None):
+    params_dict = params_dict or {}
+    for param in params:
+        i = param.find("=")
+        if i == -1:
+            continue
+        key, value = param[:i].strip(), param[i + 1 :].strip()
+        if key is None:
+            raise ValueError(f"cannot find param key in line ({param})")
+        params_dict[key] = value
+    if not params_dict:
+        return None
+    return params_dict
+
+
 cli.add_command(ingest)
 cli.add_command(query)
 cli.add_command(initdb)
@@ -202,8 +237,8 @@ list.add_command(list_users)
 list.add_command(list_collections)
 list.add_command(list_sessions)
 
-cli.add_command(create)
-create.add_command(create_collection)
+cli.add_command(update)
+update.add_command(update_collection)
 
 if __name__ == "__main__":
     cli()

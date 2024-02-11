@@ -1,8 +1,8 @@
 from schema import PipelineEvent
 from src.client import Client
 from src.config import config
-from src.pipeline import initialize_pipeline
 from src.data.sqldb import get_db_session
+from src.pipeline import initialize_pipeline
 from src.utils import sources_to_text
 
 

@@ -2,7 +2,6 @@ from langchain.chains import RetrievalQAWithSourcesChain
 from langchain.prompts import PromptTemplate
 from langchain.schema.callbacks.base import BaseCallbackHandler
 
-from src.config import config as default_config
 from src.config import get_llm, get_vector_db, logger
 from src.schema import PipelineEvent
 
@@ -110,12 +109,14 @@ class MultiRetriever(ChainRunner):
         collection_name = collection_name or self.default_collection
         logger.debug(f"Selected collection: {collection_name}")
         if collection_name not in self._retrievers:
-            vector_db = get_vector_db(self.context._config, collection_name=collection_name)
+            vector_db = get_vector_db(
+                self.context._config, collection_name=collection_name
+            )
             retriever = DocumentRetriever(
                 self.llm,
                 vector_db,
                 verbose=self.verbose,
-                #collection_name=collection_name,
+                # collection_name=collection_name,
             )
             self._retrievers[collection_name] = retriever
 
