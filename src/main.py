@@ -1,6 +1,5 @@
 # main file with cli commands using python click library
 # include two click commands: 1. data ingestion (using the data loader), 2. query (using the agent)
-from datetime import datetime
 
 import click
 from tabulate import tabulate
@@ -12,7 +11,7 @@ from .config import config
 from .doc_loader import get_data_loader, get_loader_obj
 from .pipeline import initialize_pipeline
 from .schema import PipelineEvent
-from .sqldb import (
+from src.data.sqldb import (
     DocumentCollections,
     Users,
     create_tables,

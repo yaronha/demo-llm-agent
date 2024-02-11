@@ -1,5 +1,5 @@
 from src.schema import PipelineEvent
-from src.sqldb import ChatSessions, Users, get_db_session
+from src.data.sqldb import ChatSessions, Users, get_db_session
 
 
 class SessionStore:

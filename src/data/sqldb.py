@@ -4,8 +4,8 @@ import sqlalchemy
 from sqlalchemy import JSON, Column, DateTime, String, create_engine
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
-from .config import config
-from .schema import Conversation
+from src.config import config
+from src.schema import Conversation
 
 engine = create_engine(config.sql_connection_str, echo=config.verbose)
 

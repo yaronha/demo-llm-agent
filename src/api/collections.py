@@ -5,7 +5,7 @@ import sqlalchemy
 from src.config import config, logger
 from src.doc_loader import get_data_loader, get_loader_obj
 from src.schema import ApiResponse, IngestItem
-from src.sqldb import DocumentCollections
+from src.data.sqldb import DocumentCollections
 
 
 def list_collections(

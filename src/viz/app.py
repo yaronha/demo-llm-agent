@@ -6,8 +6,8 @@ from dash import html
 import dash_cytoscape as cyto
 from vizro.tables import dash_data_table
 
-from viz.actions import update, submit
-from viz.components import ChatbotWindow, CustomUserInput
+from src.viz.actions import update, submit
+from src.viz.components import ChatbotWindow, CustomUserInput
 from vizro.models._components.form._user_input import UserInput
 
 from vizro import Vizro
@@ -15,7 +15,7 @@ import vizro.models as vm
 from vizro.models.types import capture
 
 from typing import Literal, List
-from client import Client
+from src.client import Client
 
 
 ##
@@ -53,7 +53,9 @@ def get_llm_response(user_input: str) -> str:
 
 
 @capture("action")
-def new_collection(name, description, category):
+def new_collection(n_clicks: int, name, description, category="vector"):
+    if not n_clicks:
+        return
     client.create_collection(name, description=description, db_category=category)
 
 def get_flowchart_elements():
@@ -224,7 +226,7 @@ pages.append(
                         actions=[
                             vm.Action(
                                 function=new_collection(),
-                                inputs=["submit_ingest.n_clicks", "collection_name.value", "collection_desc.value"],
+                                inputs=["submit_ingest.n_clicks", "collection_name.value", "collection_desc.value", "collection_type.value"],
                             )
                         ],
                     )
@@ -241,7 +243,8 @@ pages.append(
     vm.Page(
         title="Sessions",
         components=[
-            vm.Table(title="Chat sessions", figure=dash_data_table(data_frame=sdf)),
+            UserInput(id="tst", title="ss", placeholder="default"),
+            # vm.Table(title="Chat sessions", figure=dash_data_table(data_frame=sdf)),
         ],
     )
 )

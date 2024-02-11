@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 from src.api import chat, collections, users
 from src.chains.retrieval import get_retriever_from_config
-from src.config import config
+from src.config import config, get_vector_db
 from src.schema import IngestItem
 
 app = FastAPI()
@@ -15,6 +15,8 @@ app = FastAPI()
 # Create a local session factory
 engine = create_engine(config.sql_connection_str, echo=config.verbose)
 LocalSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+config.print()
 
 
 def get_db():
@@ -146,3 +148,12 @@ async def transcribe_file(file: UploadFile = File(...)):
     file_contents = await file.read()
     file_handler = file.file
     return chat.transcribe_file(file_handler)
+
+
+@app.get("/tst")
+async def tst():
+    vector = get_vector_db(config)
+    results = vector.similarity_search("Can you please provide me with information about the mobile plans?")
+    print(results)
+
+

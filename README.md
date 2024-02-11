@@ -50,7 +50,7 @@ uvicorn src.api.api:app
 
 To start Vizro UI:
 ```shell
-python src/app.py
+python -m src.viz.app
 ```
 
 

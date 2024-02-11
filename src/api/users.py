@@ -2,7 +2,7 @@ import sqlalchemy
 
 from src.config import logger
 from src.schema import ApiResponse
-from src.sqldb import Users
+from src.data.sqldb import Users
 
 
 def get_user(session: sqlalchemy.orm.Session, username: str):

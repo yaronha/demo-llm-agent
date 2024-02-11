@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from src.config import config, logger
 from src.pipeline import initialize_pipeline
 from src.schema import ApiResponse, PipelineEvent
-from src.sqldb import ChatSessions
+from src.data.sqldb import ChatSessions
 from src.utils import sources_to_md
 
 

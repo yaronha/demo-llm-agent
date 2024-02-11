@@ -20,6 +20,7 @@ class DocumentCallbackHandler(BaseCallbackHandler):
         parent_run_id,
         **kwargs,
     ):
+        logger.debug(f"on_retriever: {documents}")
         if documents:
             for i, doc in enumerate(documents):
                 doc.metadata["index"] = str(i)
@@ -88,7 +89,7 @@ class DocumentRetriever:
         # TODO: use text when is_cli
         logger.debug(f"Retriever Question: {event.query}\n")
         answer, sources = self._get_answer(event.query)
-        logger.debug(f"answer: {answer}")
+        logger.debug(f"answer: {answer} \nSources: {sources}")
         return {"answer": answer, "sources": sources}
 
 
@@ -107,6 +108,7 @@ class MultiRetriever(ChainRunner):
 
     def _get_retriever(self, collection_name: str = None):
         collection_name = collection_name or self.default_collection
+        logger.debug(f"Selected collection: {collection_name}")
         if collection_name not in self._retrievers:
             vector_db = get_vector_db(self.context._config, collection_name=collection_name)
             retriever = DocumentRetriever(

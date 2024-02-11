@@ -14,7 +14,7 @@ from langchain.document_loaders import (
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from .config import AppConfig, get_vector_db
-from .sqldb import DocumentCollections, get_db_session
+from src.data.sqldb import DocumentCollections, get_db_session
 
 # class Source(BaseModel):
 #     title: Optional[str] = Field(None)
