@@ -1,0 +1,17 @@
+mlrun
+pymilvus
+chromadb~=0.3.29
+pysqlite3
+langchain~=0.0.340
+sentence-transformers
+python-multipart
+bs4
+mysql-connector-python
+openai
+#dotenv
+fastapi~=0.105.0
+tabulate~=0.9.0
+SQLAlchemy~=2.0.23
+gradio~=3.50.0
+vizro
+dash_cytoscape

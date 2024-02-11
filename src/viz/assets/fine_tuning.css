@@ -1,0 +1,35 @@
+.card_text a {
+    text-decoration: underline;
+    color: var(--text-active);
+}
+
+.card_text a:hover
+{
+  text-decoration: none;
+}
+
+.page-component-container {
+    border: 1px solid var(--border-subtle-alpha-01);
+    padding: 32px;
+}
+
+.tabs .page-component-container {
+  border: none;
+  padding: 0;
+}
+
+
+.grid-layout {
+    display: flex;
+    flex-direction: column;
+}
+
+.parameter {
+    display: flex;
+    flex-direction: row;
+    column-gap: 8px;
+}
+
+.previous-next-buttons {
+    margin-top: 20px;
+}
