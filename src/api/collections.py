@@ -27,12 +27,12 @@ def list_collections(
     return ApiResponse(success=True, data=collections)
 
 
-def get_collection(session: sqlalchemy.orm.Session, name: str):
+def get_collection(session: sqlalchemy.orm.Session, name: str, short: bool = False):
     """This is the collection command"""
     logger.debug(f"Getting collection: name={name}")
     collection = DocumentCollections.get(session, name)
     if collection:
-        return ApiResponse(success=True, data=[collection.to_dict()])
+        return ApiResponse(success=True, data=[collection.to_dict(short)])
     else:
         return ApiResponse(success=False, error="Collection not found")
 

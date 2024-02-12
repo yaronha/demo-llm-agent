@@ -379,4 +379,4 @@ if __name__ == "__main__":
     dashboard = vm.Dashboard(title="LLM Demo App", pages=pages)
     app = Vizro().build(dashboard)
     app.dash.layout.children.append(dcc.Store(id="form_data", data={}))
-    app.run(debug=DEBUG, port=8051)
+    app.run(debug=DEBUG)
