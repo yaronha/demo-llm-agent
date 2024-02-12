@@ -44,7 +44,7 @@ class Client:
         return response["data"]
 
     def create_collection(self, name, **kwargs):
-        response = self.post_request(f"collection/{name}", params=kwargs)
+        response = self.post_request(f"collection/{name}", data=kwargs, method="POST")
         return response["success"]
 
     def query(self, query, collection, session_id=None, filter=None):

@@ -44,19 +44,18 @@ def submit_ingest(n_clicks: int, data_path: str, collection: str):
 def get_llm_response(user_input: str) -> str:
     """What happens when you send a message to the chatbot."""
     # requests.post(...)
-    bot_message, sources, state = client.query(
-        user_input, collection="default", session_id=session_id
-    )
+    bot_message, sources, state = client.query(user_input, collection="default", session_id=session_id)
     if sources:
         bot_message += "\n" + sources
     return bot_message
 
 
 @capture("action")
-def new_collection(n_clicks: int, name, description, category="vector"):
+def new_collection(n_clicks: int, name, description, category):
     if not n_clicks:
         return
     client.create_collection(name, description=description, db_category=category)
+    return pd.DataFrame(client.list_collections(names_only=False)).to_dict("records")
 
 
 def get_flowchart_elements():
@@ -119,9 +118,7 @@ class Flowchart(vm.VizroBaseModel):
                             },
                         },
                     ],
-                    elements=[
-                        {"data": element} for element in get_flowchart_elements()
-                    ],
+                    elements=[{"data": element} for element in get_flowchart_elements()],
                 )
             ]
         )
@@ -228,16 +225,14 @@ pages.append(
 
 data = client.list_collections(names_only=False)
 df = pd.DataFrame(data)
+
 pages.append(
     vm.Page(
         title="Data",
-        # layout=GridLayout(grid=[[0, 1, 2], [3, 3, 3], [3, 3, 3]], row_gap="8px", id="data-layout"),
         components=[
             vm.Container(
                 title="Create New Collection",
-                layout=GridLayout(
-                    grid=[[0, 1, 2], [3, 3, 3]], row_gap="8px", id="data-layout"
-                ),
+                layout=GridLayout(grid=[[0, 1, 2], [3, 3, 3]]),
                 components=[
                     UserInput(
                         id="collection_name",
@@ -245,39 +240,49 @@ pages.append(
                         placeholder="default",
                     ),
                     UserInput(id="collection_desc", title="Description"),
-                    UserInput(id="collection_type", title="Type", placeholder="vector"),
+                    vm.Dropdown(
+                        id="collection_type",
+                        title="Type",
+                        options=["vector"],
+                        multi=False,
+                    ),
                     vm.Button(
                         id="add_collection",
-                        text="create",
+                        text="Create",
                         actions=[
                             vm.Action(
                                 function=new_collection(),
                                 inputs=[
-                                    "submit_ingest.n_clicks",
+                                    "add_collection.n_clicks",
                                     "collection_name.value",
                                     "collection_desc.value",
                                     "collection_type.value",
                                 ],
+                                outputs=["data_collections.data"],
                             )
                         ],
                     ),
                 ],
             ),
-            vm.Table(title="Data Collections", figure=dash_data_table(data_frame=df)),
+            vm.Table(
+                title="Data Collections",
+                figure=dash_data_table(id="data_collections", data_frame=df),
+            ),
         ],
     )
 )
 
 sdata = client.list_sessions(short=True)
-print(sdata)
-sdf = pd.DataFrame(sdata)
+# The state column has difficulty with JSONifying and pandas DataFrame, so remove it
+sdf = pd.DataFrame(sdata).drop(columns=["state"])
+
 pages.append(
     vm.Page(
         title="Sessions",
         components=[
-            UserInput(id="tst", title="ss", placeholder="default"),
-            # vm.Table(title="Chat sessions", figure=dash_data_table(data_frame=sdf)),
+            vm.Table(title="Chat sessions", figure=dash_data_table(data_frame=sdf)),
         ],
+        controls=[vm.Filter(column="username")],
     )
 )
 
@@ -290,5 +295,5 @@ pages.append(
 
 
 if __name__ == "__main__":
-    dashboard = vm.Dashboard(title="LMM Demo App", pages=pages)
+    dashboard = vm.Dashboard(title="LLM Demo App", pages=pages)
     app = Vizro().build(dashboard).run(debug=DEBUG)
