@@ -32,12 +32,12 @@ def get_collections():
 
 
 @capture("action")
-def submit_ingest(n_clicks: int, data_path: str, collection: str, extra_params: Dict[str, str]):
+def submit_ingest(n_clicks: int, data_path: str, collection: str, loader: str, extra_params: Dict[str, str]):
     """What happens when you click the Submit button."""
     # Prevent trigger on page load
     if not n_clicks:
         return
-    client.ingest(collection, path=data_path, loader="web")
+    client.ingest(collection, path=data_path, loader=loader)
     print(data_path, collection, extra_params)
 
 
@@ -248,46 +248,9 @@ pages = []
 
 pages.append(
     vm.Page(
-        title="Ingest data",
-        components=[
-            UserInputWithValue(
-                id="data_path",
-                title="Data path",
-                value="http://www.example.com/data",
-            ),
-            vm.Dropdown(
-                id="collection",
-                title="Select collection",
-                options=get_collections(),
-                multi=False,
-            ),
-            vm.Button(id="add_parameter", text="Add parameter"),
-            vm.Button(
-                id="submit_ingest",
-                text="Submit",
-                actions=[
-                    vm.Action(
-                        function=submit_ingest(),
-                        inputs=["submit_ingest.n_clicks", "data_path.value", "collection.value", "form_data.data"],
-                    )
-                ],
-            ),
-        ],
-    )
-)
-
-pages.append(
-    vm.Page(
         title="Chatbot",
         components=[
             ChatbotWindow(id="chatbot"),
-            vm.Dropdown(
-                id="chatbot_collection",
-                title="Select collection",
-                options=get_collections(),
-                multi=False,
-                value="default",
-            ),
             CustomUserInput(
                 id="user_input_id",
                 placeholder="Send a message and press enter...",
@@ -299,6 +262,49 @@ pages.append(
                         outputs=["store_conversation.data"],
                     ),
                     update,
+                ],
+            ),
+            vm.Dropdown(
+                id="chatbot_collection",
+                title="Select data collection",
+                options=get_collections(),
+                multi=False,
+                value="default",
+            ),
+        ],
+    )
+)
+
+pages.append(
+    vm.Page(
+        title="Ingest data",
+        components=[
+            UserInputWithValue(
+                id="data_path",
+                title="Data path",
+                value="http://www.example.com/data",
+            ),
+            vm.Dropdown(
+                id="collection",
+                title="Select data collection",
+                options=get_collections(),
+                multi=False,
+            ),
+            vm.Dropdown(
+                id="loader",
+                title="Select document loader type",
+                options=["web", "eweb", "file"],
+                multi=False,
+            ),
+            vm.Button(id="add_parameter", text="Add parameter"),
+            vm.Button(
+                id="submit_ingest",
+                text="Submit",
+                actions=[
+                    vm.Action(
+                        function=submit_ingest(),
+                        inputs=["submit_ingest.n_clicks", "data_path.value", "collection.value", "loader.value", "form_data.data"],
+                    )
                 ],
             ),
         ],
@@ -355,13 +361,13 @@ pages.append(
 
 sdata = client.list_sessions(short=True)
 # The state column has difficulty with JSONifying and pandas DataFrame, so remove it
-sdf = pd.DataFrame(sdata).drop(columns=["state"])
+sdf = pd.DataFrame(sdata).drop(columns=["state"], errors="ignore")
 
 pages.append(
     vm.Page(
         title="Sessions",
         components=[
-            vm.Table(title="Chat sessions", figure=dash_data_table(data_frame=sdf)),
+            vm.Table(title="Chat sessions", figure=dash_data_table(id="sessions_tbl", data_frame=sdf)),
         ],
         controls=[vm.Filter(column="username")],
     )
