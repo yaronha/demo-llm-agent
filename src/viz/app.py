@@ -44,7 +44,9 @@ def submit_ingest(n_clicks: int, data_path: str, collection: str):
 def get_llm_response(user_input: str) -> str:
     """What happens when you send a message to the chatbot."""
     # requests.post(...)
-    bot_message, sources, state = client.query(user_input, collection="default", session_id=session_id)
+    bot_message, sources, state = client.query(
+        user_input, collection="default", session_id=session_id
+    )
     if sources:
         bot_message += "\n" + sources
     return bot_message
@@ -118,7 +120,9 @@ class Flowchart(vm.VizroBaseModel):
                             },
                         },
                     ],
-                    elements=[{"data": element} for element in get_flowchart_elements()],
+                    elements=[
+                        {"data": element} for element in get_flowchart_elements()
+                    ],
                 )
             ]
         )

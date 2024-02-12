@@ -14,6 +14,7 @@ from langchain.document_loaders import (
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from src.data.sqldb import DocumentCollections, get_db_session
+from src.data.web_loader import SmartWebLoader
 
 from .config import AppConfig, get_vector_db, logger
 
@@ -44,6 +45,8 @@ LOADER_MAPPING = {
 def get_loader_obj(doc_path: str, loader_type: str = None, **extra_args):
     if loader_type == "web":
         return WebBaseLoader([doc_path], **extra_args)
+    elif loader_type == "eweb":
+        return SmartWebLoader([doc_path], **extra_args)
     else:
         ext = Path(doc_path).suffix
         if ext in LOADER_MAPPING:
@@ -76,11 +79,17 @@ class DataLoader:
             version: A version number for the documents.
         """
         docs = loader.load()
+        to_chunk = not hasattr(loader, "chunked")
         for doc in docs:
-            self.ingest_document(doc, metadata, version)
+            self.ingest_document(doc, metadata, version, to_chunk=to_chunk)
 
     def ingest_document(
-        self, doc, metadata: dict = None, version: int = None, doc_uid: str = None
+        self,
+        doc,
+        metadata: dict = None,
+        version: int = None,
+        doc_uid: str = None,
+        to_chunk: bool = True,
     ):
         """Ingests a document into the vector store.
 
@@ -92,9 +101,13 @@ class DataLoader:
         """
         if not doc_uid:
             doc_uid = uuid.uuid4().hex
-        chunks = self.text_splitter.split_documents([doc])
+        if to_chunk:
+            chunks = self.text_splitter.split_documents([doc])
+        else:
+            chunks = [doc]
         for i, chunk in enumerate(chunks):
-            chunk.metadata["chunk"] = i
+            if to_chunk:
+                chunk.metadata["chunk"] = i
             if metadata:
                 for key, value in metadata.items():
                     chunk.metadata[key] = value
