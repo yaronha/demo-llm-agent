@@ -68,7 +68,7 @@ async def list_collections(
 
 @app.get("/collection/{name}")
 async def get_collection(name: str, short: bool = False, session=Depends(get_db)):
-    return collections.get_collection(session, name)
+    return collections.get_collection(session, name, short=short)
 
 
 @app.post("/collection/{name}")
