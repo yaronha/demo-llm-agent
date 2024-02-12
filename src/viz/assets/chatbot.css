@@ -69,3 +69,13 @@ p, .card-body{
   overflow: unset;
   height: auto;
 }
+
+#chatbot_collection {
+  width: 300px
+}
+
+#chatbot
+{
+  height: 400px;
+  width: 800px
+}
