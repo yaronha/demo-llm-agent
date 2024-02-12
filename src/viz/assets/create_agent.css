@@ -1,0 +1,84 @@
+.textarea {
+  background-color: var(--field-enabled);
+}
+
+.textarea:enabled,
+textarea:enabled {
+  color: var(--text-primary);
+}
+
+#grouped_buttons  .grid-layout{
+  flex-direction: row;
+}
+
+#grouped_buttons.page-component-container {
+  border: none;
+  padding: 0;
+  float: right
+}
+
+.selector_container,
+.selector_dropdown_container,
+.input-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-02);
+  width: 100%;
+}
+.selector_dropdown_container {
+  gap: var(--spacing-02);
+}
+
+.input-container {
+  gap: var(--spacing-02);
+}
+
+.user_input,
+textarea {
+  background-color: var(--field-enabled);
+  box-shadow: var(--box-shadow-elevation-0);
+  display: flex;
+  flex-direction: column;
+  font-size: var(--text-size-02);
+  letter-spacing: var(--letter-spacing-body-ui-02);
+  line-height: var(--text-size-03);
+  text-overflow: ellipsis;
+}
+
+.user_input {
+  gap: var(--spacing-02);
+  height: 32px;
+  padding: 8px 8px 8px 12px;
+}
+
+.user_input:empty {
+  color: var(--text-placeholder);
+}
+
+.user_input:enabled,
+textarea:enabled {
+  color: var(--text-primary);
+}
+
+textarea {
+  padding: var(--spacing-03) var(--spacing-03) var(--spacing-04);
+}
+
+.user_input:hover,
+textarea:hover {
+  background: var(--field-hover);
+  box-shadow: var(--box-shadow-elevation-1);
+}
+
+.user_input:focus,
+textarea:focus {
+  background: var(--field-enabled);
+  box-shadow: 0 0 0 2px var(--focus-focus) inset;
+  color: var(--text-primary);
+  outline: none;
+}
+
+/* Should be replaced by a custom icon at some point*/
+input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
