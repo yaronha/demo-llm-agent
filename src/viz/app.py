@@ -303,7 +303,13 @@ pages.append(
                 actions=[
                     vm.Action(
                         function=submit_ingest(),
-                        inputs=["submit_ingest.n_clicks", "data_path.value", "collection.value", "loader.value", "form_data.data"],
+                        inputs=[
+                            "submit_ingest.n_clicks",
+                            "data_path.value",
+                            "collection.value",
+                            "loader.value",
+                            "form_data.data",
+                        ],
                     )
                 ],
             ),
@@ -362,6 +368,8 @@ pages.append(
 sdata = client.list_sessions(short=True)
 # The state column has difficulty with JSONifying and pandas DataFrame, so remove it
 sdf = pd.DataFrame(sdata).drop(columns=["state"], errors="ignore")
+if sdf.empty:
+    sdf = pd.DataFrame({"username": ["default"]})
 
 pages.append(
     vm.Page(
