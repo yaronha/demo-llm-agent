@@ -75,6 +75,21 @@ def get_flowchart_elements():
     return nodes + edges
 
 
+def get_recent_chat_histories(n: int):
+    """Get most recent n chat histories. Only searches through the last 10 sessions.
+    Gives most recent history first."""
+    sessions = client.list_sessions(last=10)
+    histories = []
+
+    for session in sessions:
+        # TODO: Should really be a yield until have n entries
+        if not session["history"]:
+            continue
+        histories.append([(line["role"], line["content"]) for line in session["history"]])
+
+    return histories[:n]
+
+
 class Flowchart(vm.VizroBaseModel):
     type: Literal["flowchart"] = "flowchart"
 
@@ -143,12 +158,6 @@ class UserInputWithValue(UserInput):
         return built
 
 
-# Add custom components
-vm.Page.add_type("components", ChatbotWindow)
-vm.Page.add_type("components", CustomUserInput)
-vm.Page.add_type("components", Flowchart)
-
-
 # Enable form components to appear in vm.Container and vm.Page.
 # UserInput is not in vm namespace since it's not yet public, but it works fine.
 vm.Container.add_type("components", vm.Checklist)
@@ -158,7 +167,9 @@ vm.Container.add_type("components", vm.RangeSlider)
 vm.Container.add_type("components", vm.Slider)
 vm.Container.add_type("components", UserInput)
 vm.Page.add_type("components", UserInputWithValue)
-
+vm.Page.add_type("components", ChatbotWindow)
+vm.Page.add_type("components", CustomUserInput)
+vm.Page.add_type("components", Flowchart)
 
 vm.Page.add_type("components", vm.Checklist)
 vm.Page.add_type("components", vm.Dropdown)
@@ -167,6 +178,9 @@ vm.Page.add_type("components", vm.RangeSlider)
 vm.Page.add_type("components", vm.Slider)
 vm.Page.add_type("components", UserInput)
 vm.Page.add_type("components", UserInputWithValue)
+vm.Container.add_type("components", ChatbotWindow)
+vm.Container.add_type("components", CustomUserInput)
+vm.Container.add_type("components", Flowchart)
 
 
 @capture("action")
@@ -246,30 +260,46 @@ def update_form_data_for_parameters(parameter_names, parameter_values, form_data
 
 pages = []
 
+chat_histories = [
+    vm.Container(title=f"Previous chat {i}", components=[ChatbotWindow(data=chat_history)])
+    for i, chat_history in enumerate(get_recent_chat_histories(3), 1)
+]
+
+
 pages.append(
     vm.Page(
         title="Chatbot",
         components=[
-            ChatbotWindow(id="chatbot"),
-            CustomUserInput(
-                id="user_input_id",
-                placeholder="Send a message and press enter...",
-                actions=[
-                    submit,
-                    vm.Action(
-                        function=run_chatbot(),  # inputs and outputs need to match above defined action
-                        inputs=["store_conversation.data", "chatbot_collection.value"],
-                        outputs=["store_conversation.data"],
+            vm.Tabs(
+                tabs=[
+                    vm.Container(
+                        title="Current chat",
+                        components=[
+                            ChatbotWindow(id="chatbot"),
+                            CustomUserInput(
+                                id="user_input_id",
+                                placeholder="Send a message and press enter...",
+                                actions=[
+                                    submit,
+                                    vm.Action(
+                                        function=run_chatbot(),  # inputs and outputs need to match above defined action
+                                        inputs=["store_conversation.data", "chatbot_collection.value"],
+                                        outputs=["store_conversation.data"],
+                                    ),
+                                    update,
+                                ],
+                            ),
+                            vm.Dropdown(
+                                id="chatbot_collection",
+                                title="Select data collection",
+                                options=get_collections(),
+                                multi=False,
+                                value="default",
+                            ),
+                        ],
                     ),
-                    update,
-                ],
-            ),
-            vm.Dropdown(
-                id="chatbot_collection",
-                title="Select data collection",
-                options=get_collections(),
-                multi=False,
-                value="default",
+                    *chat_histories,
+                ]
             ),
         ],
     )
@@ -303,7 +333,13 @@ pages.append(
                 actions=[
                     vm.Action(
                         function=submit_ingest(),
-                        inputs=["submit_ingest.n_clicks", "data_path.value", "collection.value", "loader.value", "form_data.data"],
+                        inputs=[
+                            "submit_ingest.n_clicks",
+                            "data_path.value",
+                            "collection.value",
+                            "loader.value",
+                            "form_data.data",
+                        ],
                     )
                 ],
             ),
