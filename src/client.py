@@ -73,7 +73,7 @@ class Client:
         )
 
     def get_session(self, session_id):
-        response = self.post_request(f"sessions/{session_id}")
+        response = self.post_request(f"session/{session_id}")
         return response["data"]
 
     def list_sessions(

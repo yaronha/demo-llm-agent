@@ -2,12 +2,13 @@
 from dash import dcc, html
 from vizro.models._action._actions_chain import Trigger
 
+from src.viz.actions import _update_chatbot_window
 
 try:
     from pydantic.v1 import validator, Field
 except ImportError:
     from pydantic import validator, Field
-from typing import List, Literal
+from typing import List, Literal, Tuple
 
 import dash_bootstrap_components as dbc
 from dash import html
@@ -61,15 +62,6 @@ class TextArea(VizroBaseModel):
         )
 
 
-class CustomUserInput(TextArea):
-    """Custom input form."""
-
-    @validator("actions")
-    def _validate_actions(cls, v, values):
-        v[0].trigger = Trigger(component_id=values["id"], component_property="n_submit")
-        return v
-
-
 class ChatbotWindow(VizroBaseModel):
     """Component to render chatbot.
 
@@ -77,11 +69,16 @@ class ChatbotWindow(VizroBaseModel):
         type (Literal["render_chatbot"]): Defaults to `"render_chatbot"`.
     """
 
+    data: List[Tuple[str, str]] = None
     type: Literal["render_chatbot"] = "render_chatbot"
 
     @_log_call
     def build(self):
         """Builds chatbot component."""
+        if self.data:
+            chat = [_update_chatbot_window(message) for message in self.data]
+        else:
+            chat = None
         return html.Div(
             [
                 dcc.Store(id="store_conversation", data=[]),
@@ -90,7 +87,7 @@ class ChatbotWindow(VizroBaseModel):
                         dbc.CardBody(
                             [
                                 html.Div(
-                                    html.Div(id=self.id),
+                                    html.Div(id=self.id, children=chat),
                                     className="display-conversation-container",
                                 ),
                             ],
