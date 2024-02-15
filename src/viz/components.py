@@ -62,15 +62,6 @@ class TextArea(VizroBaseModel):
         )
 
 
-class CustomUserInput(TextArea):
-    """Custom input form."""
-
-    @validator("actions")
-    def _validate_actions(cls, v, values):
-        v[0].trigger = Trigger(component_id=values["id"], component_property="n_submit")
-        return v
-
-
 class ChatbotWindow(VizroBaseModel):
     """Component to render chatbot.
 

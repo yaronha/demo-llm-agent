@@ -29,9 +29,7 @@ class Client:
             # If the request failed, raise an exception
             response.raise_for_status()
 
-    def list_collections(
-        self, owner=None, metadata=None, names_only=False, short: bool = False
-    ):
+    def list_collections(self, owner=None, metadata=None, names_only=False, short: bool = False):
         response = self.post_request(
             "collections",
             params={
@@ -73,12 +71,10 @@ class Client:
         )
 
     def get_session(self, session_id):
-        response = self.post_request(f"sessions/{session_id}")
+        response = self.post_request(f"session/{session_id}")
         return response["data"]
 
-    def list_sessions(
-        self, username=None, created_after=None, last=None, short: bool = False
-    ):
+    def list_sessions(self, username=None, created_after=None, last=None, short: bool = False):
         response = self.post_request(
             "sessions",
             params={
