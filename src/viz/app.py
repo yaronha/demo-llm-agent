@@ -41,7 +41,9 @@ def get_collections():
 # Used on chatbot screen
 def query_llm(user_input: str, collection) -> str:
     """What happens when you send a message to the chatbot."""
-    bot_message, sources, state = client.query(user_input, collection=collection, session_id=this_session_id)
+    bot_message, sources, state = client.query(
+        user_input, collection=collection, session_id=this_session_id
+    )
     if sources:
         bot_message += "\n" + sources
     # No need to return anything since chat is populated from session history
@@ -89,7 +91,9 @@ def run_chatbot(stored_user_input_value, collection):
     query_llm(stored_user_input_value, collection)
     return [
         _update_chatbot_window(message)
-        for message in format_session_history(client.get_session(session_id=this_session_id))
+        for message in format_session_history(
+            client.get_session(session_id=this_session_id)
+        )
     ]
 
 
@@ -131,7 +135,11 @@ this_session_chatbot_components = [
             vm.Action(
                 function=add_thinking_box(),  # inputs and outputs need to match above defined
                 inputs=["user_input_id.value"],
-                outputs=["chatbot.children", "user_input_id.value", "store_conversation.data"],
+                outputs=[
+                    "chatbot.children",
+                    "user_input_id.value",
+                    "store_conversation.data",
+                ],
             ),
             vm.Action(
                 function=run_chatbot(),  # inputs and outputs need to match above defined action
@@ -150,7 +158,13 @@ class ChatbotPage(vm.Page):
         if session_id == this_session_id:
             self.components = this_session_chatbot_components
         else:
-            self.components = [ChatbotWindow(data=format_session_history(client.get_session(session_id=session_id)))]
+            self.components = [
+                ChatbotWindow(
+                    data=format_session_history(
+                        client.get_session(session_id=session_id)
+                    )
+                )
+            ]
         self.layout = vm.Layout(grid=[[i] for i in range(len(self.components))])
 
         built = super().build()
@@ -158,7 +172,9 @@ class ChatbotPage(vm.Page):
             # Need to repopulate so when you switch back to current chat page it is still populated
             built["chatbot"].children = [
                 _update_chatbot_window(message)
-                for message in format_session_history(client.get_session(session_id=session_id))
+                for message in format_session_history(
+                    client.get_session(session_id=session_id)
+                )
             ]
         return built
 
@@ -186,7 +202,9 @@ class ChatAccordion(vm.Accordion):
         accordion_buttons = []
 
         for session_id in pages:
-            session_name = "Current chat" if session_id == this_session_id else session_id[:5]
+            session_name = (
+                "Current chat" if session_id == this_session_id else session_id[:5]
+            )
             accordion_buttons.append(
                 dbc.Button(
                     children=[session_name],
@@ -201,11 +219,15 @@ class ChatAccordion(vm.Accordion):
 ChatAccordion.__fields__["pages"].validators = []
 ChatAccordion.__fields__["pages"].post_validators = None
 
-sessions = [this_session_id] + [session_id for session_id, session_history in get_recent_chat_histories()]
+sessions = [this_session_id] + [
+    session_id for session_id, session_history in get_recent_chat_histories()
+]
 
 if __name__ == "__main__":
     dashboard = ChatbotDashboard(
-        title="LLM Demo App", pages=[page], navigation=vm.Navigation(nav_selector=ChatAccordion(pages=sessions))
+        title="LLM Demo App",
+        pages=[page],
+        navigation=vm.Navigation(nav_selector=ChatAccordion(pages=sessions)),
     )
     app = Vizro().build(dashboard)
     app.dash.layout.children.append(dcc.Store(id="form_data", data={}))

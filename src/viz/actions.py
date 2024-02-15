@@ -22,7 +22,9 @@ def _update_chatbot_window(message: List[str]) -> html.Div:
 
     if message[0] == "Human":
         thumbnail_human = _create_html_span("person", "thumbnail-human")
-        textbox_human = dbc.Card(text, body=True, inverse=True, class_name="textbox-human")
+        textbox_human = dbc.Card(
+            text, body=True, inverse=True, class_name="textbox-human"
+        )
         return html.Div([thumbnail_human, textbox_human])
     elif message[0] == "AI":
         thumbnail = _create_html_span("robot_2", "thumbnail-ai")
