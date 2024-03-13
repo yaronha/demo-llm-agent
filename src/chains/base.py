@@ -1,12 +1,7 @@
 import asyncio
 
-import mlrun
 import storey
-from mlrun import serving
-from mlrun.utils import get_caller_globals
 
-from src.config import config as default_config
-from src.data.sessions import get_session_store
 from src.schema import PipelineEvent
 
 
@@ -64,10 +59,17 @@ class SessionLoader(storey.Flow):
 
 class HistorySaver(ChainRunner):
 
-    def __init__(self, answer_key: str = None, question_key: str = None, **kwargs):
+    def __init__(
+        self,
+        answer_key: str = None,
+        question_key: str = None,
+        save_sources: str = True,
+        **kwargs
+    ):
         super().__init__(**kwargs)
-        self.answer_key = answer_key or "answer"
+        self.answer_key = answer_key
         self.question_key = question_key
+        self.save_sources = save_sources
 
     async def _run(self, event: PipelineEvent):
         question = (
@@ -75,79 +77,13 @@ class HistorySaver(ChainRunner):
             if self.question_key
             else event.original_query
         )
+        sources = None
+        if self.save_sources and "sources" in event.results:
+            sources = [src.metadata for src in event.results["sources"]]
         event.conversation.add_message("Human", question)
-        event.conversation.add_message("AI", event.results[self.answer_key])
+        event.conversation.add_message(
+            "AI", event.results[self.answer_key or "answer"], sources
+        )
 
         self.context.session_store.save(event)
         return event.results
-
-
-class AppPipeline:
-    def __init__(self, name=None, config=None):
-        self.name = name or ""
-        self._config = config or default_config
-        self.verbose = self._config.verbose
-        self.session_store = get_session_store(self._config)
-        self._graph = None
-        self._server = None
-
-    @property
-    def graph(self) -> serving.states.RootFlowStep:
-        return self._graph
-
-    @graph.setter
-    def graph(self, graph):
-        if isinstance(graph, list):
-            if not graph:
-                raise ValueError("graph list must not be empty")
-            graph_obj = mlrun.serving.states.RootFlowStep()
-            step = graph_obj
-            for item in graph:
-                if isinstance(item, dict):
-                    step = step.to(**item)
-                else:
-                    step = step.to(item)
-            step.respond()
-            self._graph = graph_obj
-            return
-
-        if isinstance(graph, dict):
-            graph = mlrun.serving.states.RootFlowStep.from_dict(graph)
-        self._graph = graph
-
-    def get_server(self):
-        if self._server is None:
-            namespace = get_caller_globals()
-            server = serving.create_graph_server(
-                graph=self.graph,
-                parameters={},
-                verbose=self.verbose,
-                graph_initializer=self.lc_initializer,
-            )
-            server.init_states(context=None, namespace=namespace)
-            server.init_object(namespace)
-            return server
-        return self._server
-
-    def lc_initializer(self, server):
-        context = server.context
-        if getattr(context, "_config", None) is None:
-            context._config = self._config
-        if getattr(context, "session_store", None) is None:
-            context.session_store = self.session_store
-
-    def post_init(self):
-        self.graph.to(SessionLoader()).to(name="s1", class_name="RefineQuery").to(
-            name="s2", class_name="MultiRetriever"
-        ).to(HistorySaver()).respond()
-        print(self.graph.to_yaml())
-
-    def run(self, event: PipelineEvent, db_session=None):
-        server = self.get_server()
-        try:
-            resp = server.test("", body=event)
-        finally:
-            server.wait_for_completion()
-
-        print("resp: ", resp)
-        return resp.results

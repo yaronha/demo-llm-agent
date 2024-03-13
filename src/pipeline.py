@@ -1,4 +1,5 @@
-from src.chains.base import AppPipeline, HistorySaver, SessionLoader
+from src.chains.base import HistorySaver, SessionLoader
+from src.chains.pipelines import get_or_create_pipeline
 from src.chains.refine import RefineQuery
 from src.chains.retrieval import MultiRetriever
 from src.config import AppConfig, logger
@@ -10,15 +11,13 @@ pipe_config = [
     HistorySaver(),
 ]
 
+pipelines = {
+    "default": pipe_config,
+}
 
-pipeline = None
 
-
-def initialize_pipeline(config: AppConfig, verbose=False):
+def initialize_pipeline(config: AppConfig, name="default"):
     """Initialize the pipeline"""
-    global pipeline
-    config.verbose = verbose or config.verbose
-    if pipeline is None:
-        pipeline = AppPipeline(config)
-        pipeline.graph = pipe_config
-    return pipeline
+    if name not in pipelines:
+        raise ValueError(f"Pipeline {name} not found")
+    return get_or_create_pipeline(name, pipelines[name], config)

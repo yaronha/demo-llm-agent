@@ -4,11 +4,31 @@ import openai
 import sqlalchemy
 from pydantic import BaseModel
 
+from src.api.model import ApiResponse
 from src.config import config, logger
-from src.data.sqldb import ChatSessions
+from src.doc_loader import get_data_loader, get_loader_obj
 from src.pipeline import initialize_pipeline
-from src.schema import ApiResponse, PipelineEvent
-from src.utils import sources_to_md
+from src.schema import PipelineEvent
+
+
+class IngestItem(BaseModel):
+    path: str
+    loader: str
+    metadata: Optional[List[Tuple[str, str]]] = None
+    version: Optional[str] = None
+
+
+def ingest(session: sqlalchemy.orm.Session, collection_name, item: IngestItem):
+    """This is the data ingestion command"""
+    logger.debug(
+        f"Running Data Ingestion: collection_name={collection_name}, path={item.path}, loader={item.loader}"
+    )
+    data_loader = get_data_loader(
+        config, collection_name=collection_name, session=session
+    )
+    loader_obj = get_loader_obj(item.path, loader_type=item.loader)
+    data_loader.load(loader_obj, metadata=item.metadata, version=item.version)
+    return ApiResponse(success=True)
 
 
 class QueryItem(BaseModel):
@@ -16,6 +36,12 @@ class QueryItem(BaseModel):
     session_id: Optional[str] = None
     filter: Optional[List[Tuple[str, str]]] = None
     collection: Optional[str] = None
+
+
+class QueryResponse(BaseModel):
+    answer: str
+    sources: List[str]
+    returned_state: Optional[dict] = None
 
 
 def query(session: sqlalchemy.orm.Session, item: QueryItem, username: str = None):
@@ -37,39 +63,12 @@ def query(session: sqlalchemy.orm.Session, item: QueryItem, username: str = None
 
     return ApiResponse(
         success=True,
-        data={
-            "answer": result["answer"],
-            "sources": sources_to_md(result["sources"]),
-            "returned_state": returned_state,
-        },
+        data=QueryResponse(
+            answer=result["answer"],
+            sources=result["sources"],
+            returned_state=returned_state,
+        ),
     )
-
-
-def list_sessions(
-    session: sqlalchemy.orm.Session,
-    username: str = None,
-    created_after: str = None,
-    last=None,
-    short: bool = False,
-):
-    """This is the list chat sessions command"""
-    logger.debug(
-        f"Getting chat sessions: username={username}, created_after={created_after}, last={last}"
-    )
-    sessions = ChatSessions.list(
-        session, username=username, created_after=created_after, last=last
-    )
-    return ApiResponse(success=True, data=[s.to_dict(short) for s in sessions])
-
-
-def get_session(session: sqlalchemy.orm.Session, session_id: str):
-    """This is the chat session command"""
-    logger.debug(f"Getting chat session: session_id={session_id}")
-    session = ChatSessions.get(session, session_id)
-    if session:
-        return ApiResponse(success=True, data=session.to_dict())
-    else:
-        return ApiResponse(success=False, error="Session not found")
 
 
 def transcribe_file(file_handler):

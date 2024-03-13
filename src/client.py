@@ -1,5 +1,7 @@
 import requests
 
+from src.config import logger
+
 
 class Client:
     def __init__(self, base_url, username=None, token=None):
@@ -9,14 +11,19 @@ class Client:
 
     def post_request(self, path, data=None, params=None, method="GET", files=None):
         # Construct the URL
-        url = f"{self.base_url}/{path}"
+        url = f"{self.base_url}/api/{path}"
+        logger.debug(
+            f"Sending {method} request to {url}, params: {params}, data: {data}"
+        )
 
         # Make the request
         response = requests.request(
             method,
             url,
             json=data,
-            params=params,
+            params=(
+                {k: v for k, v in params.items() if v is not None} if params else None
+            ),
             headers={"x_username": self.username},
             files=files,
         )
@@ -29,16 +36,13 @@ class Client:
             # If the request failed, raise an exception
             response.raise_for_status()
 
-    def list_collections(
-        self, owner=None, metadata=None, names_only=False, short: bool = False
-    ):
+    def list_collections(self, owner=None, labels=None, output_mode=None):
         response = self.post_request(
             "collections",
             params={
                 "owner": owner,
-                "metadata": metadata,
-                "names_only": names_only,
-                "short": short,
+                "labels": labels,
+                "mode": output_mode,
             },
         )
         return response["data"]
@@ -59,6 +63,7 @@ class Client:
             method="POST",
         )
         data = response["data"]
+        print(f"response: {response}")
         return data["answer"], data["sources"], data["returned_state"]
 
     # method to ingest a document
@@ -73,11 +78,11 @@ class Client:
         )
 
     def get_session(self, session_id):
-        response = self.post_request(f"sessions/{session_id}")
+        response = self.post_request(f"session/{session_id}")
         return response["data"]
 
     def list_sessions(
-        self, username=None, created_after=None, last=None, short: bool = False
+        self, username=None, created_after=None, last=None, output_mode=None
     ):
         response = self.post_request(
             "sessions",
@@ -85,7 +90,7 @@ class Client:
                 "username": username,
                 "created_after": created_after,
                 "last": last,
-                "short": short,
+                "mode": output_mode,
             },
         )
         return response["data"]

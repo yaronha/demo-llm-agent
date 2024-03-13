@@ -1,39 +1,129 @@
-from src.api import users
-from src.data.sqldb import (
-    ChatSessions,
-    DocumentCollections,
-    Users,
-    create_tables,
-    drop_tables,
-    get_db_session,
-)
+# from src.api import users
+from src.api.sqlclient import SqlClient
+from src.api.model import User, DocCollection, ChatSession
+import yaml
 
 
-def test_sql_db():
-    drop_tables()
-    create_tables()
 
-    session = get_db_session()
+def test_new_users_crud():
 
-    Users.create(session, "yh", "Yaron", "x@y.z")
-    ChatSessions.create(session, "123", "yh", [{"intent": "test"}])
-    # create_chat_session('123', '456', {'intent': 'test'})
-    DocumentCollections.create(session, "docs", "yaron", {"type": "web"})
+    client = SqlClient("sqlite:///:memory:")
+    client.create_tables(True)
+    session = client.get_db_session()
+    resp = client.create_user(User(
+        name="yh",
+        full_name="Yaron",
+        email="x@y.z",
+        labels={"type": "web"},
+        features={"a": "b"},
+    ), session=session)
 
-    s = ChatSessions.get(session, "123")
-    print("XX:", s, s.user.username)
-    ChatSessions.add_to_history(session, "123", {"intent": "test5"})
-    ChatSessions.list(session, True)
-    # ChatSession.delete(session, "123")
+    print("user:", str(resp.data))
+    resp = client.get_user("yh", session=session)
+    print(f"get user:\n{yaml.dump(resp.data)}")
+    assert resp.data.name == "yh", "expected user name to be yh"
+    assert resp.data.labels == {"type": "web"}, "expected labels to be {'type': 'web'}"
 
+    resp = client.update_user(User(name="yh", email="x@y.w", labels={"type": None, "b": "c"}, features={"a": "c", "b": "d"}), session=session)
+    print("\nupdated user:", str(resp.data))
+    resp = client.get_user("yh", session=session)
+    print(f"get user:\n{yaml.dump(resp.data)}")
+    assert resp.data.email == "x@y.w", "expected email to be x@y.w"
+    assert resp.data.features == {"a": "c", "b": "d"}, "expected features to be {'a': 'c', 'b': 'd'}"
+
+    resp = client.list_users(full_name="Yaron", session=session)
+    print(f"\nlist users 1:\n{yaml.dump(resp.data)}")
+    assert len(resp.data) == 1, "expected one user"
+
+
+    resp = client.delete_user("yh", session=session)
+    resp = client.list_users(session=session)
+    print(f"\nlist users 2:\n{yaml.dump(resp.data)}")
+    assert len(resp.data) == 0, "expected no users"
     session.close()
 
 
-# write a set of unit tests to test the crud operations in the Users class
-# (create, get, list, update, delete)
+# write a unit tests to test the crud operations of the collections table in the database
+# (create, get, list, update, delete), similar to the tests for the Users class in test_new_users_crud
+def test_new_collections_crud():
+    client = SqlClient("sqlite:///:memory:")
+    client.create_tables(True)
+    session = client.get_db_session()
+    resp = client.create_user(User(
+        name="yh",
+        full_name="Yaron",
+        email="x@y.z",
+    ), session=session)
+    resp = client.create_collection(DocCollection(
+        name="docs",
+        owner_name="yh",
+        labels={"type": "web"},
+        db_args={"a": "b"},
+    ), session=session)
+
+    print("collection:", str(resp.data))
+    resp = client.get_collection("docs", session=session)
+    print(f"get collection:\n{yaml.dump(resp.data)}")
+    assert resp.data.name == "docs", "expected collection name to be docs"
+    assert resp.data.labels == {"type": "web"}, "expected labels to be {'type': 'web'}"
+
+    resp = client.update_collection(DocCollection(name="docs", category="vector"), session=session)
+    print("\nupdated collection:", str(resp.data))
+    resp = client.get_collection("docs", session=session)
+    print(f"get collection:\n{yaml.dump(resp.data)}")
+    assert resp.data.category == "vector", "expected category to be vector"
+
+    resp = client.list_collections(owner="yh", session=session)
+    print(f"\nlist collections 1:\n{yaml.dump(resp.data)}")
+    assert len(resp.data) == 1, "expected one collection"
+
+    resp = client.delete_collection("docs", session=session)
+    resp = client.list_collections(session=session)
+    print(f"\nlist collections 2:\n{yaml.dump(resp.data)}")
+    assert len(resp.data) == 0, "expected no collections"
+    session.close()
 
 
-def test_users_crud():
+# write a unit tests to test the crud operations of the ChatSession table in the database
+# (create, get, list, update, delete), similar to the tests for the Users class in test_new_collections_crud
+def test_new_sessions_crud():
+    client = SqlClient("sqlite:///:memory:")
+    client.create_tables(True)
+    session = client.get_db_session()
+    resp = client.create_user(User(
+        name="yh",
+        full_name="Yaron",
+        email="x@y.z",
+    ), session=session)
+    resp = client.create_session(ChatSession(
+        name="123",
+        username="yh",
+        history=[{"role": "Human", "content": "what is x?\n"}]
+    ), session=session)
+
+    print("session:", str(resp.data))
+    resp = client.get_session("123", session=session)
+    print(f"get session:\n{yaml.dump(resp.data)}")
+    assert resp.data.name == "123", "expected session name to be 123"
+    assert resp.data.history[0].role == "Human", "expected role to be Human"
+
+    resp = client.update_session(ChatSession(name="123", features={"a": "b"}), session=session)
+    print("\nupdated session:", str(resp.data))
+    resp = client.get_session("123", session=session)
+    print(f"get session:\n{yaml.dump(resp.data)}")
+
+    resp = client.list_sessions(username="yh", session=session)
+    print(f"\nlist sessions 1:\n{yaml.dump(resp.data)}")
+    assert len(resp.data) == 1, "expected one session"
+
+    resp = client.delete_session("123", session=session)
+    resp = client.list_sessions(session=session)
+    print(f"\nlist sessions 2:\n{yaml.dump(resp.data)}")
+    assert len(resp.data) == 0, "expected no sessions"
+    session.close()
+
+
+def testt_users_crud():
     drop_tables()
     create_tables()
 
@@ -67,7 +157,7 @@ def test_users_crud():
 
 # write a set of unit tests to test the crud operations in the ChatSessions class
 # (create, get, list, update, delete)
-def test_chat_sessions_crud():
+def testt_chat_sessions_crud():
     drop_tables()
     create_tables()
 
@@ -112,7 +202,7 @@ def test_chat_sessions_crud():
     session.close()
 
 
-def test_document_collections_crud():
+def testt_document_collections_crud():
     drop_tables()
     create_tables()
 
@@ -159,35 +249,5 @@ def test_document_collections_crud():
     DocumentCollections.delete(session, "docs")
     doc_collections = DocumentCollections.list(session)
     assert len(doc_collections) == 4
-
-    session.close()
-
-
-def test_prep_db():
-    drop_tables()
-    create_tables()
-
-    session = get_db_session()
-
-    Users.create(session, "yhaviv@gmail.com", "Yaron Haviv", "yhaviv@gmail.com")
-    session.close()
-
-
-def test_list_collections():
-    session = get_db_session()
-
-    doc_collections = DocumentCollections.list(session, names_only=True)
-    print(doc_collections)
-    session.close()
-
-
-def test_list_users():
-    session = get_db_session()
-
-    us = Users.list(session, names_only=False)
-    print(us)
-
-    users_data = users.list_users(session, names_only=False).with_raise()
-    print("users_data", users_data)
 
     session.close()

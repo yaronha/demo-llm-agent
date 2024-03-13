@@ -13,7 +13,8 @@ from langchain.document_loaders import (
 )
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-from src.data.sqldb import DocumentCollections, get_db_session
+from src.api.model import DocCollection
+from src.api.sqlclient import client
 from src.data.web_loader import SmartWebLoader
 
 from .config import AppConfig, get_vector_db, logger
@@ -125,12 +126,12 @@ def get_data_loader(
 ) -> DataLoader:
     """Get a data loader instance."""
     close_session = True if session is None else False
-    session = session or get_db_session()
+    session = session or client.get_db_session()
     collection_name = collection_name or config.default_collection()
     db_args = None
-    collection = DocumentCollections.get(session, collection_name)
+    collection = client.get_collection(session, collection_name).data
     if not collection:
-        DocumentCollections.create(session, name=collection_name)
+        client.create_collection(session, DocCollection(name=collection_name))
     else:
         db_args = collection.db_args
     if close_session:

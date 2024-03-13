@@ -1,27 +1,33 @@
 from typing import List, Optional, Tuple, Union
 
-from fastapi import Depends, FastAPI, File, Header, Request, UploadFile
+from fastapi import APIRouter, Depends, FastAPI, File, Header, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
-from src.api import chat, collections, users
-from src.config import config, get_vector_db
-from src.schema import IngestItem
+import src.api.actions as actions
+import src.api.model as model
+from src.api.sqlclient import client
 
 app = FastAPI()
 
-# Create a local session factory
-engine = create_engine(config.sql_connection_str, echo=config.verbose)
-LocalSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Add CORS middleware, remove in production
+origins = ["*"]  # React app
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-config.print()
+# Create a router with a prefix
+router = APIRouter(prefix="/api")
 
 
 def get_db():
     db_session = None
     try:
-        db_session = LocalSession()
+        db_session = client.get_local_session()
         yield db_session
     finally:
         if db_session:
@@ -46,113 +52,137 @@ async def get_auth_user(
         return AuthInfo(username="yhaviv@gmail.com", token=token)
 
 
-@app.post("/query")
+@router.post("/query")
 async def query(
-    item: chat.QueryItem, session=Depends(get_db), auth=Depends(get_auth_user)
+    item: actions.QueryItem, session=Depends(get_db), auth=Depends(get_auth_user)
 ):
     """This is the query command"""
-    return chat.query(session, item, username=auth.username)
+    resp = actions.query(session, item, username=auth.username)
+    print(f"resp: {resp}")
+    return resp
 
 
-@app.get("/collections")
+@router.get("/collections")
 async def list_collections(
     owner: str = None,
-    metadata: Optional[List[Tuple[str, str]]] = None,
-    names_only: bool = True,
+    labels: Optional[List[Tuple[str, str]]] = None,
+    mode: model.OutputMode = model.OutputMode.Details,
     session=Depends(get_db),
 ):
-    return collections.list_collections(
-        session, owner=owner, metadata=metadata, names_only=names_only
+    return client.list_collections(
+        owner=owner, labels_match=labels, output_mode=mode, session=session
     )
 
 
-@app.get("/collection/{name}")
-async def get_collection(name: str, short: bool = False, session=Depends(get_db)):
-    return collections.get_collection(session, name, short=short)
+@router.get("/collection/{name}")
+async def get_collection(name: str, session=Depends(get_db)):
+    return client.get_collection(name, session=session)
 
 
-@app.post("/collection/{name}")
+@router.post("/collection/{name}")
 async def create_collection(
     request: Request,
     name: str,
+    collection: model.DocCollection,
     session=Depends(get_db),
     auth: AuthInfo = Depends(get_auth_user),
 ):
-    data = await request.json()
-    return collections.create_collection(
-        session, name, owner_name=auth.username, **data
-    )
+    collection.owner_name = auth.username
+    return client.create_collection(collection, session=session)
 
 
-@app.post("/collection/{name}/ingest")
-async def ingest(name, item: IngestItem, session=Depends(get_db)):
-    return collections.ingest(session, name, item)
+@router.post("/collection/{name}/ingest")
+async def ingest(name, item: actions.IngestItem, session=Depends(get_db)):
+    return actions.ingest(session, name, item)
 
 
-@app.get("/users")
+@router.get("/users")
 async def list_users(
     email: str = None,
     username: str = None,
-    names_only: bool = True,
-    short: bool = False,
+    mode: model.OutputMode = model.OutputMode.Details,
     session=Depends(get_db),
 ):
-    return users.get_users(
-        session, email=email, username=username, names_only=names_only, short=short
+    return client.list_users(
+        email=email, full_name=username, output_mode=mode, session=session
     )
 
 
-@app.get("/user/{username}")
+@router.get("/user/{username}")
 async def get_user(username: str, session=Depends(get_db)):
-    return users.get_user(session, username)
+    return client.get_user(username, session=session)
 
 
-@app.post("/user/{username}")
+@router.post("/user/{username}")
 async def create_user(
-    request: Request,
+    user: model.User,
     username: str,
     session=Depends(get_db),
 ):
     """This is the user command"""
-    data = await request.json()
-    return users.create_user(session, username, **data)
+    return client.create_user(user, session=session)
 
 
-@app.delete("/user/{username}")
+@router.delete("/user/{username}")
 async def delete_user(username: str, session=Depends(get_db)):
-    return users.delete_user(session, username)
+    return client.delete_user(username, session=session)
+
+
+# get last user sessions, specify user and last
+@router.get("/user/{username}/sessions")
+async def list_user_sessions(
+    username: str,
+    last: int = 0,
+    created: str = None,
+    mode: model.OutputMode = model.OutputMode.Details,
+    session=Depends(get_db),
+):
+    return client.list_sessions(
+        username, created_after=created, last=last, output_mode=mode, session=session
+    )
 
 
 # add routs for chat sessions, list_sessions, get_session
-@app.get("/sessions")
+@router.get("/sessions")
 async def list_sessions(
-    user: str = None,
+    username: str = None,
     last: int = 0,
     created: str = None,
-    short: bool = False,
+    mode: model.OutputMode = model.OutputMode.Details,
     session=Depends(get_db),
+    auth=Depends(get_auth_user),
 ):
-    return chat.list_sessions(
-        session, user, created_after=created, last=last, short=short
+    user = None if username and username == "all" else (username or auth.username)
+    return client.list_sessions(
+        user, created_after=created, last=last, output_mode=mode, session=session
     )
 
 
-@app.get("/session/{session_id}")
-async def get_session(session_id: str, session=Depends(get_db)):
-    return chat.get_session(session, session_id)
+@router.get("/session/{session_id}")
+async def get_session(
+    session_id: str, session=Depends(get_db), auth=Depends(get_auth_user)
+):
+    user = None
+    if session_id == "$last":
+        user = auth.username
+        session_id = None
+    return client.get_session(session_id, user, session=session)
 
 
-@app.post("/transcribe")
+@router.post("/transcribe")
 async def transcribe_file(file: UploadFile = File(...)):
     file_contents = await file.read()
     file_handler = file.file
-    return chat.transcribe_file(file_handler)
+    return transcribe_file(file_handler)
 
-
-@app.get("/tst")
-async def tst():
-    vector = get_vector_db(config)
-    results = vector.similarity_search(
-        "Can you please provide me with information about the mobile plans?"
-    )
+    # @router.get("/tst")
+    # async def tst():
+    #     vector = get_vector_db(config)
+    #     results = vector.similarity_search(
+    #         "Can you please provide me with information about the mobile plans?"
+    #     )
     print(results)
+
+
+# Include the router in the main app
+app.include_router(router)

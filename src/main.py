@@ -5,14 +5,8 @@ import click
 import yaml
 from tabulate import tabulate
 
-from src.api import chat, collections, users
-from src.data.sqldb import (
-    DocumentCollections,
-    Users,
-    create_tables,
-    drop_tables,
-    get_db_session,
-)
+import src.api.model as model
+from src.api.sqlclient import client
 
 from .config import config
 from .doc_loader import get_data_loader, get_loader_obj
@@ -31,17 +25,21 @@ def cli():
 def initdb():
     """Initialize the database (delete old tables)"""
     click.echo(f"Running Init DB")
-    drop_tables()
-    create_tables()
-    session = get_db_session()
+    client.create_tables(True)
+    session = client.get_db_session()
     # create a guest user, and the defualt document collection
-    Users.create(session, "guest", email="guest@any.com", full_name="Guest User")
-    DocumentCollections.create(
-        session,
-        "default",
-        description="Default Collection",
-        owner_name="guest",
-        db_category="vector",
+    client.create_user(
+        model.User(name="guest", email="guest@any.com", full_name="Guest User"),
+        session=session,
+    )
+    client.create_collection(
+        model.DocCollection(
+            name="default",
+            description="Default Collection",
+            owner_name="guest",
+            category="vector",
+        ),
+        session=session,
     )
     session.close()
 
@@ -66,7 +64,6 @@ def print_config():
 )
 def ingest(path, loader, metadata, version, collection, from_file):
     """Ingest documents into the vector database"""
-    create_tables()
     data_loader = get_data_loader(config, collection_name=collection)
     if from_file:
         with open(path, "r") as fp:
@@ -103,7 +100,8 @@ def query(question, filter, collection, user, verbose, session):
     click.echo(f"Running Query for: {question}")
 
     search_args = {"filter": dict(filter)} if filter else {}
-    pipeline = initialize_pipeline(config, verbose=verbose)
+    config.verbose = verbose or config.verbose
+    pipeline = initialize_pipeline(config)
     result = pipeline.run(
         PipelineEvent(
             username=user,
@@ -136,11 +134,9 @@ def list_users(user, email):
     """List users"""
     click.echo("Running List Users")
 
-    session = get_db_session()
-    data = users.list_users(session, email, user, short=True).with_raise()
+    data = client.list_users(email, user, output_mode="short").with_raise()
     table = format_table_results(data.data)
     click.echo(table)
-    session.close()
 
 
 # add a command to list document collections, similar to the list users command
@@ -153,13 +149,9 @@ def list_collections(owner, metadata):
     """List document collections"""
     click.echo("Running List Collections")
 
-    session = get_db_session()
-    data = collections.list_collections(
-        session, owner, metadata, short=True
-    ).with_raise()
+    data = client.list_collections(owner, metadata, output_mode="short").with_raise()
     table = format_table_results(data.data)
     click.echo(table)
-    session.close()
 
 
 # add a command for creating or updating a collection, using the collections.create_collection function, and accept all the same arguments as click options
@@ -168,27 +160,34 @@ def list_collections(owner, metadata):
 @click.option("-o", "--owner", type=str, help="owner name")
 @click.option("-d", "--description", type=str, help="collection description")
 @click.option("-c", "--category", type=str, help="collection category")
-@click.option("-m", "--metadata", multiple=True, default=[], help="metadata filter")
-def update_collection(name, owner, description, category, metadata):
+@click.option(
+    "-l", "--labels", multiple=True, default=[], help="metadata labels filter"
+)
+def update_collection(name, owner, description, category, labels):
     """Create or update a document collection"""
     click.echo("Running Create or Update Collection")
-    metadata = fill_params(metadata)
+    labels = fill_params(labels)
 
-    session = get_db_session()
+    session = client.get_db_session()
     # check if the collection exists, if it does, update it, otherwise create it
-    collection_exists = collections.get_collection(session, name).success
+    collection_exists = client.get_collection(name, session=session).success
     if collection_exists:
-        collections.update_collection(
-            session, name, description, db_category=category, meta=metadata
+        client.update_collection(
+            session,
+            model.DocCollection(
+                name=name, description=description, category=category, labels=labels
+            ),
         ).with_raise()
     else:
-        collections.create_collection(
+        client.create_collection(
             session,
-            name,
-            description,
-            owner_name=owner,
-            db_category=category,
-            meta=metadata,
+            model.DocCollection(
+                name=name,
+                description=description,
+                owner_name=owner,
+                category=category,
+                labels=labels,
+            ),
         ).with_raise()
 
 
@@ -201,14 +200,12 @@ def list_sessions(user, last, created):
     """List chat sessions"""
     click.echo("Running List Sessions")
 
-    session = get_db_session()
-    data = chat.list_sessions(session, user, created, last, short=True).with_raise()
+    data = client.list_sessions(user, created, last, output_mode="short").with_raise()
     table = format_table_results(data.data)
     click.echo(table)
-    session.close()
 
 
-def format_table_results(table_results):
+def format_table_results(table_results, short=True):
     return tabulate(table_results, headers="keys", tablefmt="fancy_grid")
 
 

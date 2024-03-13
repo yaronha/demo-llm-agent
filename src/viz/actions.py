@@ -8,8 +8,6 @@ import vizro.models as vm
 from dash import dcc, html
 from vizro.models.types import capture
 
-from dash import dcc
-
 
 def _create_html_span(icon_name: str, id: str) -> html.Span:
     """Creates a html.Span with the specified icon."""

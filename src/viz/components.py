@@ -1,18 +1,17 @@
 """User input component."""
+
 from dash import dcc, html
 from vizro.models._action._actions_chain import Trigger
 
-
 try:
-    from pydantic.v1 import validator, Field
+    from pydantic.v1 import Field, validator
 except ImportError:
     from pydantic import validator, Field
+
 from typing import List, Literal
 
 import dash_bootstrap_components as dbc
 from dash import html
-
-
 from vizro.models import Action, VizroBaseModel
 from vizro.models._action._actions_chain import _action_validator_factory
 from vizro.models._models_utils import _log_call

@@ -1,13 +1,12 @@
 import os
 import uuid
-from typing import Literal, Dict
+from typing import Dict, Literal
 
 import dash
-from dash import Input, Output, State, MATCH, ALL
 import dash_cytoscape as cyto
 import pandas as pd
 import vizro.models as vm
-from dash import html, dcc
+from dash import ALL, MATCH, Input, Output, State, dcc, html
 from vizro import Vizro
 from vizro.models._components.form._user_input import UserInput
 from vizro.models.types import capture
@@ -28,11 +27,17 @@ session_id = uuid.uuid4().hex
 
 def get_collections():
     """get the available indices from the back end"""
-    return client.list_collections(names_only=True)
+    return client.list_collections(output_mode="names") or ["default"]
 
 
 @capture("action")
-def submit_ingest(n_clicks: int, data_path: str, collection: str, loader: str, extra_params: Dict[str, str]):
+def submit_ingest(
+    n_clicks: int,
+    data_path: str,
+    collection: str,
+    loader: str,
+    extra_params: Dict[str, str],
+):
     """What happens when you click the Submit button."""
     # Prevent trigger on page load
     if not n_clicks:
@@ -44,7 +49,9 @@ def submit_ingest(n_clicks: int, data_path: str, collection: str, loader: str, e
 # Used on chatbot screen
 def get_llm_response(user_input: str, collection) -> str:
     """What happens when you send a message to the chatbot."""
-    bot_message, sources, state = client.query(user_input, collection=collection, session_id=session_id)
+    bot_message, sources, state = client.query(
+        user_input, collection=collection, session_id=session_id
+    )
     if sources:
         bot_message += "\n" + sources
     return bot_message
@@ -55,7 +62,7 @@ def new_collection(n_clicks: int, name, description, category):
     if not n_clicks:
         return
     client.create_collection(name, description=description, db_category=category)
-    return pd.DataFrame(client.list_collections(names_only=False)).to_dict("records")
+    return pd.DataFrame(client.list_collections(output_mode="short")).to_dict("records")
 
 
 def get_flowchart_elements():
@@ -118,7 +125,9 @@ class Flowchart(vm.VizroBaseModel):
                             },
                         },
                     ],
-                    elements=[{"data": element} for element in get_flowchart_elements()],
+                    elements=[
+                        {"data": element} for element in get_flowchart_elements()
+                    ],
                 )
             ]
         )
@@ -181,9 +190,15 @@ def run_chatbot(store_conversation, collection):  # need store_conversation as i
 def make_parameter_div(id, parameter_name, parameter_value, placeholder=True):
     div = html.Div(
         [
-            vm.Button.construct(id={"type": "delete_parameter", "id": id}, text="Delete").build(),
-            UserInput.construct(id={"type": "parameter_name", "id": id}, placeholder=parameter_name).build(),
-            UserInput.construct(id={"type": "parameter_value", "id": id}, placeholder=parameter_value).build(),
+            vm.Button.construct(
+                id={"type": "delete_parameter", "id": id}, text="Delete"
+            ).build(),
+            UserInput.construct(
+                id={"type": "parameter_name", "id": id}, placeholder=parameter_name
+            ).build(),
+            UserInput.construct(
+                id={"type": "parameter_value", "id": id}, placeholder=parameter_value
+            ).build(),
         ],
         className="parameter",
         id={"type": "parameter_container", "id": id},
@@ -196,7 +211,10 @@ def make_parameter_div(id, parameter_name, parameter_value, placeholder=True):
 
 @dash.callback(
     Output("page-components", "children"),
-    inputs={"n_clicks": Input("add_parameter", "n_clicks"), "page_components": State("page-components", "children")},
+    inputs={
+        "n_clicks": Input("add_parameter", "n_clicks"),
+        "page_components": State("page-components", "children"),
+    },
 )
 def add_parameter(n_clicks, page_components):
     # n_clicks = n_clicks or 0  # Since id should be an integer
@@ -205,16 +223,22 @@ def add_parameter(n_clicks, page_components):
 
     # Use construct to avoid validation rejecting the id as non-string and also to avoid the DuplicateIDError.
     # Insert above the Add parameter button rather than below it as append would do.
-    page_components.insert(-3, make_parameter_div(n_clicks, "Parameter name", "Parameter value"))
+    page_components.insert(
+        -3, make_parameter_div(n_clicks, "Parameter name", "Parameter value")
+    )
     return page_components
 
 
 @dash.callback(
     output=[
-        Output({"type": "parameter_container", "id": MATCH}, "style", allow_duplicate=True),
+        Output(
+            {"type": "parameter_container", "id": MATCH}, "style", allow_duplicate=True
+        ),
     ],
     inputs={
-        "delete_parameter": Input({"type": "delete_parameter", "id": MATCH}, "n_clicks"),
+        "delete_parameter": Input(
+            {"type": "delete_parameter", "id": MATCH}, "n_clicks"
+        ),
     },
     prevent_initial_call=True,
 )
@@ -303,7 +327,13 @@ pages.append(
                 actions=[
                     vm.Action(
                         function=submit_ingest(),
-                        inputs=["submit_ingest.n_clicks", "data_path.value", "collection.value", "loader.value", "form_data.data"],
+                        inputs=[
+                            "submit_ingest.n_clicks",
+                            "data_path.value",
+                            "collection.value",
+                            "loader.value",
+                            "form_data.data",
+                        ],
                     )
                 ],
             ),
@@ -311,7 +341,7 @@ pages.append(
     )
 )
 
-data = client.list_collections(names_only=False)
+data = client.list_collections(output_mode="short")
 df = pd.DataFrame(data)
 
 pages.append(
@@ -359,17 +389,22 @@ pages.append(
     )
 )
 
-sdata = client.list_sessions(short=True)
+sdata = client.list_sessions(output_mode="short") or []
 # The state column has difficulty with JSONifying and pandas DataFrame, so remove it
-sdf = pd.DataFrame(sdata).drop(columns=["state"], errors="ignore")
+sdf = pd.DataFrame(sdata)
+if sdata:
+    sdf = sdf.drop(columns=["state"], errors="ignore")
 
 pages.append(
     vm.Page(
         title="Sessions",
         components=[
-            vm.Table(title="Chat sessions", figure=dash_data_table(id="sessions_tbl", data_frame=sdf)),
+            vm.Table(
+                title="Chat sessions",
+                figure=dash_data_table(id="sessions_tbl", data_frame=sdf),
+            ),
         ],
-        controls=[vm.Filter(column="username")],
+        # controls=[vm.Filter(column="username")],
     )
 )
 

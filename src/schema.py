@@ -16,6 +16,10 @@ class Role(str, Enum):
 class Message(BaseModel):
     role: Role
     content: str
+    html: Optional[str] = None
+    sources: Optional[List[dict]] = None
+    rating: Optional[int] = None
+    suggestion: Optional[str] = None
 
 
 class Conversation(BaseModel):
@@ -25,8 +29,8 @@ class Conversation(BaseModel):
     def __str__(self):
         return "\n".join([f"{m.role}: {m.content}" for m in self.messages])
 
-    def add_message(self, role, content):
-        self.messages.append(Message(role=role, content=content))
+    def add_message(self, role, content, sources=None):
+        self.messages.append(Message(role=role, content=content, sources=sources))
 
     def to_list(self):
         return self.dict()["messages"]
@@ -69,30 +73,8 @@ class PipelineEvent:
             "conversation": self.conversation.to_list(),
         }
 
-
-class IngestItem(BaseModel):
-    path: str
-    loader: str
-    metadata: Optional[List[Tuple[str, str]]] = None
-    version: Optional[str] = None
-
-
-class ApiResponse(BaseModel):
-    success: bool
-    data: Optional[Union[dict, list]] = None
-    error: Optional[str] = None
-
-    def with_raise(self, format=None) -> "ApiResponse":
-        if not self.success:
-            format = format or "API call failed: %s"
-            raise ValueError(format % self.error)
-        return self
-
-    def with_raise_http(self, format=None) -> "ApiResponse":
-        if not self.success:
-            format = format or "API call failed: %s"
-            raise HTTPException(status_code=400, detail=format % self.error)
-        return self
+    def __getitem__(self, item):
+        return getattr(self, item)
 
 
 class TerminateResponse(BaseModel):
