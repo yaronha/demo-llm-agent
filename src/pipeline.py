@@ -1,8 +1,7 @@
-from src.chains.base import HistorySaver, SessionLoader
-from src.chains.pipelines import get_or_create_pipeline
-from src.chains.refine import RefineQuery
-from src.chains.retrieval import MultiRetriever
-from src.config import AppConfig, logger
+from src.app.chains.base import HistorySaver, SessionLoader
+from src.app.chains.refine import RefineQuery
+from src.app.chains.retrieval import MultiRetriever
+from src.app.pipelines import app_server
 
 pipe_config = [
     SessionLoader(),
@@ -16,8 +15,5 @@ pipelines = {
 }
 
 
-def initialize_pipeline(config: AppConfig, name="default"):
-    """Initialize the pipeline"""
-    if name not in pipelines:
-        raise ValueError(f"Pipeline {name} not found")
-    return get_or_create_pipeline(name, pipelines[name], config)
+app_server.add_pipelines(pipelines)
+app = app_server.to_fastapi(with_controller=True)

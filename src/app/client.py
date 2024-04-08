@@ -1,6 +1,6 @@
 import requests
 
-from src.config import logger
+from .config import logger
 
 
 class Client:
@@ -51,9 +51,9 @@ class Client:
         response = self.post_request(f"collection/{name}", data=kwargs, method="POST")
         return response["success"]
 
-    def query(self, query, collection, session_id=None, filter=None):
+    def run_pipeline(self, name, query, collection, session_id=None, filter=None):
         response = self.post_request(
-            "query",
+            f"pipeline/{name or 'default'}/run",
             data={
                 "question": query,
                 "collection": collection,
@@ -68,7 +68,7 @@ class Client:
 
     # method to ingest a document
     def ingest(self, collection, path, loader, metadata=None, version=None):
-        response = self.post_request(
+        return self.post_request(
             f"collection/{collection}/ingest",
             data={
                 "path": path,

@@ -1,9 +1,8 @@
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 
-from src.config import get_llm, logger
-from src.schema import PipelineEvent
-
+from ..config import get_llm, logger
+from ..schema import PipelineEvent
 from .base import ChainRunner
 
 _refine_prompt_template = """

@@ -1,11 +1,11 @@
 from enum import Enum
 from http.client import HTTPException
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from pydantic import BaseModel
 
 
-class Role(str, Enum):
+class ChatRole(str, Enum):
     Human = "Human"
     AI = "AI"
     System = "System"
@@ -14,7 +14,7 @@ class Role(str, Enum):
 
 
 class Message(BaseModel):
-    role: Role
+    role: ChatRole
     content: str
     html: Optional[str] = None
     sources: Optional[List[dict]] = None
@@ -33,6 +33,10 @@ class Conversation(BaseModel):
         self.messages.append(Message(role=role, content=content, sources=sources))
 
     def to_list(self):
+        return self.dict()["messages"]
+        # return self.model_dump(mode="json")["messages"]
+
+    def to_dict(self):
         return self.dict()["messages"]
         # return self.model_dump(mode="json")["messages"]
 
@@ -84,6 +88,44 @@ class TerminateResponse(BaseModel):
 
     def with_raise(self, format=None) -> "TerminateResponse":
         if not self.success:
-            format = format or f"Pipeline step failed: %s"
+            format = format or "Pipeline step failed: %s"
             raise ValueError(format % self.error)
         return self
+
+
+class QueryItem(BaseModel):
+    question: str
+    session_id: Optional[str] = None
+    filter: Optional[List[Tuple[str, str]]] = None
+    collection: Optional[str] = None
+
+
+class ApiResponse(BaseModel):
+    success: bool
+    data: Optional[Union[list, BaseModel, dict]] = None
+    error: Optional[str] = None
+
+    def with_raise(self, format=None) -> "ApiResponse":
+        if not self.success:
+            format = format or "API call failed: %s"
+            raise ValueError(format % self.error)
+        return self
+
+    def with_raise_http(self, format=None) -> "ApiResponse":
+        if not self.success:
+            format = format or "API call failed: %s"
+            raise HTTPException(status_code=400, detail=format % self.error)
+        return self
+
+
+class ApiDictResponse(ApiResponse):
+    data: Optional[dict] = None
+
+
+class PromptConfig(BaseModel):
+    name: str
+    description: Optional[str] = None
+    labels: Optional[Dict[str, Union[str, None]]] = None
+    template: str
+    inputs: dict = None
+    llm_args: dict = None

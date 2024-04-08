@@ -13,19 +13,10 @@ from langchain.document_loaders import (
 )
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-from src.api.model import DocCollection
-from src.api.sqlclient import client
-from src.data.web_loader import SmartWebLoader
-
-from .config import AppConfig, get_vector_db, logger
-
-# class Source(BaseModel):
-#     title: Optional[str] = Field(None)
-#     url: Optional[str] = Field(None)
-#     description: Optional[str] = Field(None)
-#     source_type: Optional[str] = Field(None)
-#     chunk: Optional[int] = Field(0)
-
+from ..config import AppConfig, get_vector_db, logger
+from .web_loader import SmartWebLoader
+from src.controller.model import DocCollection
+from src.controller.sqlclient import client
 
 LOADER_MAPPING = {
     ".csv": (CSVLoader, {}),
@@ -129,9 +120,9 @@ def get_data_loader(
     session = session or client.get_db_session()
     collection_name = collection_name or config.default_collection()
     db_args = None
-    collection = client.get_collection(session, collection_name).data
+    collection = client.get_collection(collection_name, session=session).data
     if not collection:
-        client.create_collection(session, DocCollection(name=collection_name))
+        client.create_collection(DocCollection(name=collection_name), session=session)
     else:
         db_args = collection.db_args
     if close_session:

@@ -14,9 +14,6 @@ from sqlalchemy import (
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import declarative_base, relationship
 
-from src.config import config
-from src.schema import Conversation
-
 # Create a base class for declarative class definitions
 Base = declarative_base()
 

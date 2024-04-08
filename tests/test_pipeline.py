@@ -1,9 +1,9 @@
-from schema import PipelineEvent
-from src.client import Client
-from src.config import config
-from src.api.sqldb import get_db_session
+from app.schema import PipelineEvent
+from app.client import Client
+from app.config import config
+from src.controller.sqldb import get_db_session
 from src.pipeline import initialize_pipeline
-from src.utils import sources_to_text
+from app.utils import sources_to_text
 
 
 # test the AppPipeline class, and the initialize_pipeline function

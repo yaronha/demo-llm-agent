@@ -2,9 +2,8 @@ from langchain.chains import RetrievalQAWithSourcesChain
 from langchain.prompts import PromptTemplate
 from langchain.schema.callbacks.base import BaseCallbackHandler
 
-from src.config import get_llm, get_vector_db, logger
-from src.schema import PipelineEvent
-
+from ..config import get_llm, get_vector_db, logger
+from ..schema import PipelineEvent
 from .base import ChainRunner
 
 

@@ -4,9 +4,12 @@ from fastapi import APIRouter, Depends, FastAPI, File, Header, Request, UploadFi
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-import src.api.actions as actions
-import src.api.model as model
-from src.api.sqlclient import client
+import src.app.actions as actions
+from src.app.schema import QueryItem
+
+from . import model
+from .config import logger
+from .sqlclient import client
 
 app = FastAPI()
 
@@ -52,12 +55,22 @@ async def get_auth_user(
         return AuthInfo(username="yhaviv@gmail.com", token=token)
 
 
-@router.post("/query")
-async def query(
-    item: actions.QueryItem, session=Depends(get_db), auth=Depends(get_auth_user)
+@router.post("/pipeline/{name}/run")
+async def run_pipeline(
+    request: Request, name: str, item: QueryItem, auth=Depends(get_auth_user)
 ):
     """This is the query command"""
-    resp = actions.query(session, item, username=auth.username)
+    agent = request.app.extra.get("agent")
+    if not agent:
+        raise ValueError("Agent not found in app")
+    event = {
+        "username": auth.username,
+        "session_id": item.session_id,
+        "query": item.question,
+        "collection_name": item.collection,
+    }
+    logger.debug(f"running pipeline {name}: {event}")
+    resp = agent.run_pipeline(name, event)
     print(f"resp: {resp}")
     return resp
 
@@ -174,14 +187,6 @@ async def transcribe_file(file: UploadFile = File(...)):
     file_contents = await file.read()
     file_handler = file.file
     return transcribe_file(file_handler)
-
-    # @router.get("/tst")
-    # async def tst():
-    #     vector = get_vector_db(config)
-    #     results = vector.similarity_search(
-    #         "Can you please provide me with information about the mobile plans?"
-    #     )
-    print(results)
 
 
 # Include the router in the main app

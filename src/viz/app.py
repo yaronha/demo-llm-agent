@@ -12,7 +12,7 @@ from vizro.models._components.form._user_input import UserInput
 from vizro.models.types import capture
 from vizro.tables import dash_data_table
 
-from src.client import Client
+from src.app.client import Client
 from src.viz.actions import submit, update
 from src.viz.components import ChatbotWindow, CustomUserInput
 
@@ -49,8 +49,8 @@ def submit_ingest(
 # Used on chatbot screen
 def get_llm_response(user_input: str, collection) -> str:
     """What happens when you send a message to the chatbot."""
-    bot_message, sources, state = client.query(
-        user_input, collection=collection, session_id=session_id
+    bot_message, sources, state = client.run_pipeline(
+        "", user_input, collection=collection, session_id=session_id
     )
     if sources:
         bot_message += "\n" + sources

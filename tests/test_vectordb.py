@@ -3,8 +3,8 @@ import os.path
 from langchain.chat_models import ChatOpenAI
 from langchain.document_loaders import WebBaseLoader
 
-from src.config import config, get_vector_db
-from src.doc_loader import DataLoader, get_data_loader, get_loader_obj
+from app.config import config, get_vector_db
+from app.data.doc_loader import DataLoader, get_data_loader, get_loader_obj
 
 
 def test_data_loader():

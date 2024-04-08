@@ -2,7 +2,7 @@ import asyncio
 
 import storey
 
-from src.schema import PipelineEvent
+from ..schema import PipelineEvent
 
 
 class ChainRunner(storey.Flow):
@@ -80,6 +80,7 @@ class HistorySaver(ChainRunner):
         sources = None
         if self.save_sources and "sources" in event.results:
             sources = [src.metadata for src in event.results["sources"]]
+            event.results["sources"] = sources
         event.conversation.add_message("Human", question)
         event.conversation.add_message(
             "AI", event.results[self.answer_key or "answer"], sources

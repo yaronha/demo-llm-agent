@@ -1,9 +1,11 @@
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 
 import yaml
 from pydantic import BaseModel
+
+from src.app.schema import Conversation, Message
 
 metadata_fields = [
     "name",
@@ -156,47 +158,6 @@ class DocCollection(BaseWithMetadata):
     db_args: Optional[dict[str, str]] = None
 
 
-class ChatRole(str, Enum):
-    Human = "Human"
-    AI = "AI"
-    System = "System"
-    User = "User"  # for co-pilot user (vs Human?)
-    Agent = "Agent"  # for co-pilot agent
-
-
-class Message(Base):
-    role: ChatRole
-    content: str
-    html: Optional[str] = None
-    sources: Optional[List[dict]] = None
-    rating: Optional[int] = None
-    suggestion: Optional[str] = None
-
-
-class Conversation(BaseModel):
-    messages: list[Message] = []
-    saved_index: int = 0
-
-    def __str__(self):
-        return "\n".join([f"{m.role}: {m.content}" for m in self.messages])
-
-    def add_message(self, role, content, sources=None):
-        self.messages.append(Message(role=role, content=content, sources=sources))
-
-    def to_list(self):
-        return self.dict()["messages"]
-        # return self.model_dump(mode="json")["messages"]
-
-    def to_dict(self):
-        return self.dict()["messages"]
-        # return self.model_dump(mode="json")["messages"]
-
-    @classmethod
-    def from_list(cls, data: list):
-        return cls.parse_obj({"messages": data or []})
-        # return cls.model_validate({"messages": data or []})
-
-
 class ChatSession(BaseWithMetadata):
     _extra_fields = ["history", "features", "state", "agent_name"]
     _top_level_fields = ["username"]
@@ -216,24 +177,6 @@ class Document(BaseWithVerMetadata):
     source: str
     origin: Optional[str] = None
     num_chunks: Optional[int] = None
-
-
-class ApiResponse(BaseModel):
-    success: bool
-    data: Optional[Union[list, BaseModel, dict]] = None
-    error: Optional[str] = None
-
-    def with_raise(self, format=None) -> "ApiResponse":
-        if not self.success:
-            format = format or "API call failed: %s"
-            raise ValueError(format % self.error)
-        return self
-
-    def with_raise_http(self, format=None) -> "ApiResponse":
-        if not self.success:
-            format = format or "API call failed: %s"
-            raise HTTPException(status_code=400, detail=format % self.error)
-        return self
 
 
 class OutputMode(str, Enum):

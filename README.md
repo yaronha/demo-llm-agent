@@ -27,7 +27,6 @@ embeddings:
   model_name: all-MiniLM-L6-v2
 log_level: DEBUG
 pipeline_args: {}
-sql_connection_str: sqlite:///C:\Users\Yaron Haviv\PycharmProjects\demo-llm-agent\data/sql.db
 verbose: false
 ```
 
@@ -56,7 +55,9 @@ python -m src.main initdb
 ## To start the API server:
 
 ```shell
-uvicorn src.api.api:app
+uvicorn src.controller.api:app
+uvicorn src.pipeline:app
+
 ```
 
 ## To start Vizro UI:

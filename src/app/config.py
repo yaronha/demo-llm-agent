@@ -7,9 +7,7 @@ import dotenv
 import yaml
 from pydantic import BaseModel
 
-# from pydantic.types import ImportString
-
-root_path = Path(__file__).parent.parent
+root_path = Path(__file__).parent.parent.parent
 dotenv.load_dotenv(os.environ.get("AGENT_ENV_PATH", str(root_path / ".env")))
 default_data_path = os.environ.get("AGENT_DATA_PATH", str(root_path / "data"))
 
@@ -17,8 +15,10 @@ default_data_path = os.environ.get("AGENT_DATA_PATH", str(root_path / "data"))
 class AppConfig(BaseModel):
     """Configuration for the agent."""
 
+    api_url: str = "http://localhost:8000"
     verbose: bool = True
     log_level: str = "DEBUG"
+    use_local_db: bool = True
 
     chunk_size: int = 1024
     chunk_overlap: int = 20
@@ -38,9 +38,6 @@ class AppConfig(BaseModel):
         "collection_name": "default",
         "connection_args": {"address": "localhost:19530"},
     }
-
-    # SQL Database
-    sql_connection_str: str = "mysql+mysqlconnector://root:mysql@localhost/db"
 
     # Pipeline kwargs
     pipeline_args: dict = {}
@@ -67,7 +64,6 @@ class AppConfig(BaseModel):
             "collection_name": "default",
             "persist_directory": str((Path(default_data_path) / "chroma").absolute()),
         }
-        config.sql_connection_str = f"sqlite:///{default_data_path}/sql.db"
         return config
 
 

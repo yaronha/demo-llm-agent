@@ -1,10 +1,14 @@
+import datetime
+from typing import Union
+
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 
-import src.api.model as model
-from src.api.model import ApiResponse
-from src.api.sqldb import Base, ChatSessionContext, DocumentCollection, User
-from src.config import config, logger
+from src.app.schema import ApiResponse
+
+from . import model
+from .config import config, logger
+from .sqldb import Base, ChatSessionContext, DocumentCollection, User
 
 
 class SqlClient:
@@ -97,6 +101,7 @@ class SqlClient:
         self,
         email: str = None,
         full_name: str = None,
+        labels_match: Union[list, str] = None,
         output_mode: model.OutputMode = model.OutputMode.Details,
         session: sqlalchemy.orm.Session = None,
     ):
@@ -138,7 +143,7 @@ class SqlClient:
     def list_collections(
         self,
         owner: str = None,
-        labels_match: list = None,
+        labels_match: Union[list, str] = None,
         output_mode: model.OutputMode = model.OutputMode.Details,
         session: sqlalchemy.orm.Session = None,
     ):
@@ -168,7 +173,12 @@ class SqlClient:
                 session, ChatSessionContext, model.ChatSession, name=session_id
             )
         elif username:
-            pass
+            # get the last session for the user
+            resp = self.list_sessions(username=username, last=1, session=session)
+            if resp.success:
+                data = resp.data[0] if resp.data else None
+                return ApiResponse(success=True, data=data)
+            return resp
         else:
             return ApiResponse(
                 success=False, error="session_id or username must be provided"
@@ -213,6 +223,7 @@ class SqlClient:
                     created_after, "%Y-%m-%d %H:%M"
                 )
             query = query.filter(ChatSessionContext.created >= created_after)
+        query = query.order_by(ChatSessionContext.updated.desc())
         if last > 0:
             query = query.limit(last)
         data = _process_output(query.all(), model.ChatSession, output_mode)

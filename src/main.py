@@ -5,14 +5,14 @@ import click
 import yaml
 from tabulate import tabulate
 
-import src.api.model as model
-from src.api.sqlclient import client
+import src.controller.model as model
+from src.app.config import config
+from src.app.data.doc_loader import get_data_loader, get_loader_obj
+from src.app.pipelines import app_server
+from src.controller.sqlclient import client
 
-from .config import config
-from .doc_loader import get_data_loader, get_loader_obj
-from .pipeline import initialize_pipeline
-from .schema import PipelineEvent
-from .utils import sources_to_text
+from .pipeline import pipelines
+from src.app.utils import sources_to_text
 
 
 @click.group()
@@ -24,7 +24,7 @@ def cli():
 @click.command()
 def initdb():
     """Initialize the database (delete old tables)"""
-    click.echo(f"Running Init DB")
+    click.echo("Running Init DB")
     client.create_tables(True)
     session = client.get_db_session()
     # create a guest user, and the defualt document collection
@@ -47,7 +47,7 @@ def initdb():
 @click.command("config")
 def print_config():
     """Print the config as a yaml file"""
-    click.echo(f"Running Config")
+    click.echo("Running Config")
     click.echo(yaml.dump(config.dict()))
 
 
@@ -95,26 +95,28 @@ def ingest(path, loader, metadata, version, collection, from_file):
 @click.option("-u", "--user", type=str, help="Username")
 @click.option("-v", "--verbose", is_flag=True, help="Verbose mode")
 @click.option("-s", "--session", type=str, help="Session ID")
-def query(question, filter, collection, user, verbose, session):
+@click.option(
+    "-n", "--pipeline-name", type=str, default="default", help="Pipeline name"
+)
+def query(question, filter, collection, user, verbose, session, pipeline_name):
     """Run a chat quary on the vector database collection"""
     click.echo(f"Running Query for: {question}")
 
     search_args = {"filter": dict(filter)} if filter else {}
-    config.verbose = verbose or config.verbose
-    pipeline = initialize_pipeline(config)
-    result = pipeline.run(
-        PipelineEvent(
-            username=user,
-            session_id=session,
-            query=question,
-            collection_name=collection,
-        )
-    )
+    app_server.verbose = verbose or config.verbose
+    app_server.add_pipelines(pipelines)
+
+    event = {
+        "username": user,
+        "session_id": session,
+        "query": question,
+        "collection_name": collection,
+    }
+    result = app_server.run_pipeline(pipeline_name, event)
     click.echo(result["answer"])
     click.echo(sources_to_text(result["sources"]))
 
 
-# create a child click group for listing database tables in sqldb.py (users, document collections), with two commands: 1. list users, 2. list collections
 @click.group()
 def list():
     """List the different objects in the database (by category)"""
@@ -154,7 +156,6 @@ def list_collections(owner, metadata):
     click.echo(table)
 
 
-# add a command for creating or updating a collection, using the collections.create_collection function, and accept all the same arguments as click options
 @click.command("collection")
 @click.argument("name", type=str)
 @click.option("-o", "--owner", type=str, help="owner name")

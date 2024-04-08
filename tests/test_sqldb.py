@@ -1,6 +1,5 @@
-# from src.api import users
-from src.api.sqlclient import SqlClient
-from src.api.model import User, DocCollection, ChatSession
+from src.controller.sqlclient import SqlClient
+from src.controller.model import User, DocCollection, ChatSession
 import yaml
 
 
