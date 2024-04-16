@@ -4,7 +4,7 @@ import openai
 import sqlalchemy
 from pydantic import BaseModel
 
-from src.app.data.doc_loader import get_data_loader, get_loader_obj
+from llmapps.app.data.doc_loader import get_data_loader, get_loader_obj
 
 from .config import config, logger
 from .schema import ApiResponse

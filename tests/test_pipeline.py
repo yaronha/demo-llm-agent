@@ -1,8 +1,8 @@
 from app.schema import PipelineEvent
 from app.client import Client
 from app.config import config
-from src.controller.sqldb import get_db_session
-from src.pipeline import initialize_pipeline
+from llmapps.controller.sqldb import get_db_session
+from llmapps.pipeline import initialize_pipeline
 from app.utils import sources_to_text
 
 

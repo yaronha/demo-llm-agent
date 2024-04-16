@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, FastAPI, File, Header, Request, UploadFi
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-import src.app.actions as actions
-from src.app.schema import QueryItem
+import llmapps.app.actions as actions
+from llmapps.app.schema import QueryItem
 
 from . import model
 from .config import logger
@@ -60,9 +60,9 @@ async def run_pipeline(
     request: Request, name: str, item: QueryItem, auth=Depends(get_auth_user)
 ):
     """This is the query command"""
-    agent = request.app.extra.get("agent")
-    if not agent:
-        raise ValueError("Agent not found in app")
+    app_server = request.app.extra.get("app_server")
+    if not app_server:
+        raise ValueError("app_server not found in app")
     event = {
         "username": auth.username,
         "session_id": item.session_id,
@@ -70,7 +70,7 @@ async def run_pipeline(
         "collection_name": item.collection,
     }
     logger.debug(f"running pipeline {name}: {event}")
-    resp = agent.run_pipeline(name, event)
+    resp = app_server.run_pipeline(name, event)
     print(f"resp: {resp}")
     return resp
 

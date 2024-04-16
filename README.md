@@ -47,7 +47,7 @@ Make sure there `.env` file is set before running the following commands, and if
 ## Initialize the database:
 
 ```shell
-python -m src.main initdb
+python -m llmapps.main initdb
 ```
 
 > should be done only once, or when we want to erase the DB and start fresh 
@@ -55,15 +55,15 @@ python -m src.main initdb
 ## To start the API server:
 
 ```shell
-uvicorn src.controller.api:app
-uvicorn src.pipeline:app
+uvicorn llmapps.controller.api:app
+uvicorn llmapps.pipeline:app
 
 ```
 
 ## To start Vizro UI:
 
 ```shell
-python -m src.viz.app
+python -m llmapps.viz.app
 ```
 
 
@@ -71,21 +71,21 @@ python -m src.viz.app
 
 To ingest data into the vector database:
 ```shell
-python -m src.main ingest -l web https://milvus.io/docs/overview.md
+python -m llmapps.main ingest -l web https://milvus.io/docs/overview.md
 ```
 
 To ask a question:
 ```shell   
-python -m src.main query "whats a vector" 
+python -m llmapps.main query "whats a vector" 
 ```
 
 
 Full CLI:
 
 ```shell
-python -m src.main
+python -m llmapps.main
 
-Usage: python -m src.main [OPTIONS] COMMAND [ARGS]...
+Usage: python -m llmapps.main [OPTIONS] COMMAND [ARGS]...
 
 Options:
   --help  Show this message and exit.

@@ -12,9 +12,9 @@ from vizro.models._components.form._user_input import UserInput
 from vizro.models.types import capture
 from vizro.tables import dash_data_table
 
-from src.app.client import Client
-from src.viz.actions import submit, update
-from src.viz.components import ChatbotWindow, CustomUserInput
+from llmapps.app.client import Client
+from llmapps.viz.actions import submit, update
+from llmapps.viz.components import ChatbotWindow, CustomUserInput
 
 ##
 # Set this to True while developing. This will enable hot reloading so that

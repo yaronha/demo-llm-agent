@@ -60,16 +60,16 @@ class AppServer:
 
         if not router:
             if with_controller:
-                from src.controller.api import router as controller_router
+                from llmapps.controller.api import router as controller_router
 
                 router = controller_router
             else:
-                from src.app.api import base_router
+                from llmapps.app.api import base_router
 
                 router = base_router
 
         extra = app.extra or {}
-        extra["agent"] = self
+        extra["app_server"] = self
         app.extra = extra
         router.add_event_handler("startup", self.api_startup)
 

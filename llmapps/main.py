@@ -5,14 +5,14 @@ import click
 import yaml
 from tabulate import tabulate
 
-import src.controller.model as model
-from src.app.config import config
-from src.app.data.doc_loader import get_data_loader, get_loader_obj
-from src.app.pipelines import app_server
-from src.controller.sqlclient import client
+import llmapps.controller.model as model
+from llmapps.app.config import config
+from llmapps.app.data.doc_loader import get_data_loader, get_loader_obj
+from llmapps.app.pipelines import app_server
+from llmapps.controller.sqlclient import client
 
-from .pipeline import pipelines
-from src.app.utils import sources_to_text
+from .pipeline import pipe_graph
+from llmapps.app.utils import sources_to_text
 
 
 @click.group()
@@ -104,7 +104,7 @@ def query(question, filter, collection, user, verbose, session, pipeline_name):
 
     search_args = {"filter": dict(filter)} if filter else {}
     app_server.verbose = verbose or config.verbose
-    app_server.add_pipelines(pipelines)
+    app_server.add_pipeline("default", pipe_graph)
 
     event = {
         "username": user,

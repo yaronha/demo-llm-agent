@@ -1,4 +1,4 @@
-from src.controller.model import ChatSession
+from llmapps.controller.model import ChatSession
 
 from .schema import PipelineEvent
 
@@ -58,7 +58,7 @@ class SessionStore:
 def get_session_store(config):
     # todo: support different session stores
     if config.use_local_db:
-        from src.controller.sqlclient import client
+        from llmapps.controller.sqlclient import client
 
         return SessionStore(client)
 

@@ -15,8 +15,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from ..config import AppConfig, get_vector_db, logger
 from .web_loader import SmartWebLoader
-from src.controller.model import DocCollection
-from src.controller.sqlclient import client
+from llmapps.controller.model import DocCollection
+from llmapps.controller.sqlclient import client
 
 LOADER_MAPPING = {
     ".csv": (CSVLoader, {}),

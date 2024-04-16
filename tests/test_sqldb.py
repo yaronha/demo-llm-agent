@@ -1,5 +1,5 @@
-from src.controller.sqlclient import SqlClient
-from src.controller.model import User, DocCollection, ChatSession
+from llmapps.controller.sqlclient import SqlClient
+from llmapps.controller.model import User, DocCollection, ChatSession
 import yaml
 
 

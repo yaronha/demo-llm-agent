@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Union
 import yaml
 from pydantic import BaseModel
 
-from src.app.schema import Conversation, Message
+from llmapps.app.schema import Conversation, Message
 
 metadata_fields = [
     "name",
